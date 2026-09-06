@@ -1,4 +1,4 @@
-.PHONY: build test integration-test lint generate check web-build web-lint up down smoke
+.PHONY: build test integration-test lint generate check web-build web-lint up down smoke migrate-up migrate-down
 
 build:
 	go build ./...
@@ -29,5 +29,11 @@ down:
 
 smoke:
 	./scripts/smoke.sh
+
+migrate-up:
+	go run ./cmd/migrate up
+
+migrate-down:
+	go run ./cmd/migrate down
 
 check: build test web-build
