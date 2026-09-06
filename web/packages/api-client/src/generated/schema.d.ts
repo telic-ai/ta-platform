@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/session/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Exchange a one-time invite for a scoped Candidate Workspace session token. */
+        post: operations["startSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/candidate/me": {
         parameters: {
             query?: never;
@@ -94,6 +111,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        StartSessionRequest: {
+            inviteToken: string;
+        };
+        StartSessionResponse: {
+            /** Format: uuid */
+            sessionId: string;
+            /** @description Opaque bearer token; this value is returned only once. */
+            accessToken: string;
+            /** @enum {string} */
+            tokenType: "Bearer";
+            /** @enum {string} */
+            scope: "candidate:workspace";
+            /** Format: date-time */
+            expiresAt: string;
+        };
         Error: {
             message: string;
             code?: string;
@@ -149,6 +181,34 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    startSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description An Active Candidate Workspace session. */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartSessionResponse"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
     getCurrentCandidate: {
         parameters: {
             query?: never;
@@ -165,6 +225,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Candidate"];
+                };
+            };
+            /** @description The session exists but is not Active. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             default: components["responses"]["Error"];
@@ -186,6 +255,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Application"][];
+                };
+            };
+            /** @description The session exists but is not Active. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             default: components["responses"]["Error"];

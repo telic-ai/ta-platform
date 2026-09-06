@@ -34,22 +34,22 @@ type Task struct {
 	CompanyID   uuid.UUID
 	InterviewID *uuid.UUID
 	AssigneeID  *uuid.UUID
-	Title        string
-	Description  string
-	Status       string
-	DueAt        *time.Time
-	CompletedAt  *time.Time
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	Title       string
+	Description string
+	Status      string
+	DueAt       *time.Time
+	CompletedAt *time.Time
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // Interview is a tenant-scoped candidate interview and its retention state.
 type Interview struct {
-	ID              uuid.UUID
-	CompanyID       uuid.UUID
-	CreatedBy       *uuid.UUID
-	CandidateName   string
-	CandidateEmail  string
+	ID               uuid.UUID
+	CompanyID        uuid.UUID
+	CreatedBy        *uuid.UUID
+	CandidateName    string
+	CandidateEmail   string
 	Status           string
 	ScheduledAt      *time.Time
 	TerminalAt       *time.Time
@@ -78,9 +78,30 @@ type Session struct {
 	ID         uuid.UUID
 	CompanyID  uuid.UUID
 	UserID     uuid.UUID
+	State      SessionState
 	TokenHash  []byte
 	ExpiresAt  time.Time
 	RevokedAt  *time.Time
 	CreatedAt  time.Time
 	LastSeenAt *time.Time
+}
+
+// SessionState is the lifecycle state of a Candidate Workspace session.
+type SessionState string
+
+const (
+	SessionStateActive    SessionState = "active"
+	SessionStateCompleted SessionState = "completed"
+	SessionStateExpired   SessionState = "expired"
+	SessionStateRevoked   SessionState = "revoked"
+)
+
+// CanTransitionTo defines the deliberately small initial session state
+// machine. Terminal sessions cannot be reactivated.
+func (s SessionState) CanTransitionTo(next SessionState) bool {
+	if s == next {
+		return true
+	}
+	return s == SessionStateActive &&
+		(next == SessionStateCompleted || next == SessionStateExpired || next == SessionStateRevoked)
 }

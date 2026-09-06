@@ -1,5 +1,7 @@
 package events
 
+import "time"
+
 // Event type constants form the platform's event catalog. Kafka topic names
 // are expected to follow the pattern "ta.<domain>.<event-type>".
 const (
@@ -11,7 +13,21 @@ const (
 	EventTypeCandidateHired        EventType = "candidate.hired"
 	EventTypeInterviewScheduled    EventType = "interview.scheduled"
 	EventTypeInterviewCompleted    EventType = "interview.completed"
+	EventTypeSessionStarted        EventType = "session.started"
 )
+
+// SessionStarted is emitted after an invite has been exchanged for an
+// Active Candidate Workspace session. Tokens are never included in events.
+type SessionStarted struct {
+	SessionID string    `json:"session_id"`
+	UserID    string    `json:"user_id"`
+	InviteID  string    `json:"invite_id"`
+	Scope     string    `json:"scope"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+func (SessionStarted) EventType() EventType { return EventTypeSessionStarted }
+func (SessionStarted) SchemaVersion() int   { return 1 }
 
 // JobPosted is emitted when a company publishes a new job requisition.
 type JobPosted struct {

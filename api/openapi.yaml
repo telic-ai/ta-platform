@@ -10,11 +10,42 @@ servers:
   - url: /v1
 
 paths:
+  /session/start:
+    post:
+      operationId: startSession
+      summary: Exchange a one-time invite for a scoped Candidate Workspace session token.
+      tags: [session]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartSessionRequest"
+      responses:
+        "200":
+          description: An Active Candidate Workspace session.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartSessionResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        default:
+          $ref: "#/components/responses/Error"
+
   /candidate/me:
     get:
       operationId: getCurrentCandidate
       summary: Get the authenticated candidate's profile.
       tags: [candidate]
+      security:
+        - sessionToken: []
       responses:
         "200":
           description: The candidate profile.
@@ -22,6 +53,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Candidate"
+        "409":
+          description: The session exists but is not Active.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         default:
           $ref: "#/components/responses/Error"
 
@@ -30,6 +67,8 @@ paths:
       operationId: listMyApplications
       summary: List the authenticated candidate's applications.
       tags: [candidate]
+      security:
+        - sessionToken: []
       responses:
         "200":
           description: The candidate's applications.
@@ -39,6 +78,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Application"
+        "409":
+          description: The session exists but is not Active.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         default:
           $ref: "#/components/responses/Error"
 
@@ -119,6 +164,12 @@ paths:
           $ref: "#/components/responses/Error"
 
 components:
+  securitySchemes:
+    sessionToken:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+
   parameters:
     JobId:
       name: jobId
@@ -142,6 +193,35 @@ components:
             $ref: "#/components/schemas/Error"
 
   schemas:
+    StartSessionRequest:
+      type: object
+      required: [inviteToken]
+      additionalProperties: false
+      properties:
+        inviteToken:
+          type: string
+          minLength: 1
+
+    StartSessionResponse:
+      type: object
+      required: [sessionId, accessToken, tokenType, scope, expiresAt]
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        accessToken:
+          type: string
+          description: Opaque bearer token; this value is returned only once.
+        tokenType:
+          type: string
+          enum: [Bearer]
+        scope:
+          type: string
+          enum: ["candidate:workspace"]
+        expiresAt:
+          type: string
+          format: date-time
+
     Error:
       type: object
       required: [message]

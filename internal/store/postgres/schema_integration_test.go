@@ -65,10 +65,15 @@ func TestMigrationsAndTenantIsolation(t *testing.T) {
 
 	assertTenantIndexes(t, ctx, pool, schema)
 	assertInterviewRetentionColumns(t, ctx, pool, schema)
+	assertSessionStateColumn(t, ctx, pool, schema)
 	assertCrossTenantQueryReturnsNothing(t, ctx, pool)
 
+	// Roll back the session-state migration, then the core schema migration.
 	if err := runner.Down(ctx); err != nil {
 		t.Fatalf("migrate down: %v", err)
+	}
+	if err := runner.Down(ctx); err != nil {
+		t.Fatalf("migrate core down: %v", err)
 	}
 	for _, table := range []string{"companies", "users", "tasks", "interviews", "invites", "sessions"} {
 		var exists bool
@@ -82,6 +87,21 @@ func TestMigrationsAndTenantIsolation(t *testing.T) {
 	}
 	if err := runner.Down(ctx); err != nil {
 		t.Fatalf("down at version zero must be a no-op: %v", err)
+	}
+}
+
+func assertSessionStateColumn(t *testing.T, ctx context.Context, pool *pgxpool.Pool, schema string) {
+	t.Helper()
+	var exists bool
+	if err := pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM information_schema.columns
+			 WHERE table_schema = $1 AND table_name = 'sessions' AND column_name = 'state'
+		)`, schema).Scan(&exists); err != nil {
+		t.Fatalf("query sessions.state: %v", err)
+	}
+	if !exists {
+		t.Error("sessions.state is missing")
 	}
 }
 
