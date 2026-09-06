@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@ta-platform/ui": ["../../packages/ui/src"],
+      "@ta-platform/api-client": ["../../packages/api-client/src"]
+    }
+  },
+  "include": ["src"]
+}
