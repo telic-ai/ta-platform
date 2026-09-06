@@ -34,7 +34,9 @@ func main() {
 	}
 	defer db.Close()
 	kafkaClient := kafka.New(cfg.KafkaBrokers)
-	writer := kafkaClient.Writer(candidateworkspace.SessionEventsTopic)
+	writer := kafkaClient.AsyncWriter(candidateworkspace.SessionEventsTopic, kafka.DefaultProducerBufferSize, func(err error) {
+		logger.Error("deliver session event", slog.Any("error", err))
+	})
 	defer writer.Close()
 	store := postgres.NewSessionStore(db.Pool())
 	service := candidateworkspace.NewService(store, kafka.NewEventPublisher(writer), cfg.SessionTTL)

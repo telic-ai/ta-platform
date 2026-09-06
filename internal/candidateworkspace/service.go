@@ -19,7 +19,7 @@ import (
 
 const (
 	ScopeCandidateWorkspace = "candidate:workspace"
-	SessionEventsTopic      = "ta.session.events"
+	SessionEventsTopic      = events.SessionEventsTopic
 )
 
 var (
@@ -48,7 +48,7 @@ type Store interface {
 
 // Publisher publishes the platform event envelope to Kafka.
 type Publisher interface {
-	Publish(context.Context, events.Envelope) error
+	Publish(context.Context, string, events.Envelope) error
 }
 
 // Service performs Candidate Workspace session operations.
@@ -95,7 +95,7 @@ func (s *Service) Start(ctx context.Context, inviteToken string) (StartResponse,
 	if err != nil {
 		return StartResponse{}, fmt.Errorf("build session.started: %w", err)
 	}
-	if err := s.publisher.Publish(ctx, envelope); err != nil {
+	if err := s.publisher.Publish(ctx, started.Session.ID.String(), envelope); err != nil {
 		return StartResponse{}, fmt.Errorf("publish session.started: %w", err)
 	}
 
