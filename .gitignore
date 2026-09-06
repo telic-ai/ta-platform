@@ -1,0 +1,10 @@
+/bin/
+*.log
+
+node_modules/
+.pnpm-store/
+dist/
+web/**/tsconfig.tsbuildinfo
+
+.env
+.env.local

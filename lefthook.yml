@@ -1,0 +1,18 @@
+pre-commit:
+  parallel: true
+  commands:
+    go-fmt:
+      glob: "*.go"
+      run: gofmt -l -s {staged_files}
+    go-vet:
+      glob: "*.go"
+      run: go vet ./...
+    web-lint:
+      root: "web/"
+      glob: "*.{ts,tsx}"
+      run: pnpm -r lint
+
+pre-push:
+  commands:
+    check:
+      run: make check

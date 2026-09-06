@@ -1,0 +1,213 @@
+openapi: 3.0.3
+info:
+  title: ta-platform API
+  version: 0.1.0
+  description: >
+    Candidate and admin HTTP APIs for the ta-platform talent-acquisition
+    platform. This is an initial contract scaffold; extend it as
+    Candidate Workspace Service and Admin API endpoints are built out.
+servers:
+  - url: /v1
+
+paths:
+  /candidate/me:
+    get:
+      operationId: getCurrentCandidate
+      summary: Get the authenticated candidate's profile.
+      tags: [candidate]
+      responses:
+        "200":
+          description: The candidate profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Candidate"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /candidate/applications:
+    get:
+      operationId: listMyApplications
+      summary: List the authenticated candidate's applications.
+      tags: [candidate]
+      responses:
+        "200":
+          description: The candidate's applications.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Application"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /admin/jobs:
+    get:
+      operationId: listJobs
+      summary: List job requisitions for the authenticated company.
+      tags: [admin]
+      responses:
+        "200":
+          description: The company's job requisitions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Job"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createJob
+      summary: Create a new job requisition.
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateJobRequest"
+      responses:
+        "201":
+          description: The created job requisition.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /admin/jobs/{jobId}:
+    get:
+      operationId: getJob
+      summary: Get a single job requisition.
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "200":
+          description: The job requisition.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /admin/candidates/{candidateId}/stage:
+    post:
+      operationId: changeCandidateStage
+      summary: Move a candidate to a new pipeline stage.
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/CandidateId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StageChangeRequest"
+      responses:
+        "200":
+          description: The updated application.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        default:
+          $ref: "#/components/responses/Error"
+
+components:
+  parameters:
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: string
+    CandidateId:
+      name: candidateId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    Error:
+      description: An error occurred.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+
+    Candidate:
+      type: object
+      required: [id, email, fullName]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+
+    Job:
+      type: object
+      required: [id, title, status]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        location:
+          type: string
+        remoteOk:
+          type: boolean
+        status:
+          type: string
+          enum: [open, closed]
+
+    CreateJobRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        location:
+          type: string
+        remoteOk:
+          type: boolean
+
+    Application:
+      type: object
+      required: [id, jobId, candidateId, stage]
+      properties:
+        id:
+          type: string
+        jobId:
+          type: string
+        candidateId:
+          type: string
+        stage:
+          type: string
+
+    StageChangeRequest:
+      type: object
+      required: [applicationId, toStage]
+      properties:
+        applicationId:
+          type: string
+        toStage:
+          type: string
