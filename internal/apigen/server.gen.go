@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -132,11 +133,35 @@ type StartSessionResponseScope string
 // StartSessionResponseTokenType defines model for StartSessionResponse.TokenType.
 type StartSessionResponseTokenType string
 
+// TimelineEvent defines model for TimelineEvent.
+type TimelineEvent struct {
+	CompanyId      openapi_types.UUID     `json:"company_id"`
+	EventId        string                 `json:"event_id"`
+	EventType      string                 `json:"event_type"`
+	InterviewId    openapi_types.UUID     `json:"interview_id"`
+	OccurredAt     time.Time              `json:"occurred_at"`
+	Payload        map[string]interface{} `json:"payload"`
+	SequenceNumber int64                  `json:"sequence_number"`
+}
+
+// TimelineResponse defines model for TimelineResponse.
+type TimelineResponse struct {
+	Events []TimelineEvent `json:"events"`
+}
+
 // CandidateId defines model for CandidateId.
 type CandidateId = string
 
+// InterviewId defines model for InterviewId.
+type InterviewId = openapi_types.UUID
+
 // JobId defines model for JobId.
 type JobId = string
+
+// GetInterviewTimelineParams defines parameters for GetInterviewTimeline.
+type GetInterviewTimelineParams struct {
+	AfterSeq *int64 `form:"after_seq,omitempty" json:"after_seq,omitempty"`
+}
 
 // ChangeCandidateStageJSONRequestBody defines body for ChangeCandidateStage for application/json ContentType.
 type ChangeCandidateStageJSONRequestBody = StageChangeRequest
@@ -167,6 +192,9 @@ type ServerInterface interface {
 	// GetCurrentCandidate Get the authenticated candidate's profile.
 	// (GET /candidate/me)
 	GetCurrentCandidate(w http.ResponseWriter, r *http.Request)
+	// GetInterviewTimeline Replay an interview's events after an optional sequence cursor.
+	// (GET /interviews/{id}/timeline)
+	GetInterviewTimeline(w http.ResponseWriter, r *http.Request, id InterviewId, params GetInterviewTimelineParams)
 	// StartSession Exchange a one-time invite for a scoped Candidate Workspace session token.
 	// (POST /session/start)
 	StartSession(w http.ResponseWriter, r *http.Request)
@@ -280,6 +308,48 @@ func (siw *ServerInterfaceWrapper) GetCurrentCandidate(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetCurrentCandidate(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetInterviewTimeline operation middleware
+func (siw *ServerInterfaceWrapper) GetInterviewTimeline(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id InterviewId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetInterviewTimelineParams
+
+	// ------------- Optional query parameter "after_seq" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "after_seq", r.URL.Query(), &params.AfterSeq, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "after_seq"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "after_seq", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetInterviewTimeline(w, r, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -423,6 +493,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/interviews/{id}/timeline", wrapper.GetInterviewTimeline)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/session/start", wrapper.StartSession)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/candidate/me", wrapper.GetCurrentCandidate)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/candidate/applications", wrapper.ListMyApplications)
@@ -696,6 +767,88 @@ func (response GetCurrentCandidatedefaultJSONResponse) VisitGetCurrentCandidateR
 	return err
 }
 
+type GetInterviewTimelineRequestObject struct {
+	Id     InterviewId `json:"id"`
+	Params GetInterviewTimelineParams
+}
+
+type GetInterviewTimelineResponseObject interface {
+	VisitGetInterviewTimelineResponse(w http.ResponseWriter) error
+}
+
+type GetInterviewTimeline200JSONResponse TimelineResponse
+
+func (response GetInterviewTimeline200JSONResponse) VisitGetInterviewTimelineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInterviewTimeline400JSONResponse struct{ ErrorJSONResponse }
+
+func (response GetInterviewTimeline400JSONResponse) VisitGetInterviewTimelineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInterviewTimeline401JSONResponse Error
+
+func (response GetInterviewTimeline401JSONResponse) VisitGetInterviewTimelineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInterviewTimeline503JSONResponse Error
+
+func (response GetInterviewTimeline503JSONResponse) VisitGetInterviewTimelineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInterviewTimelinedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetInterviewTimelinedefaultJSONResponse) VisitGetInterviewTimelineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type StartSessionRequestObject struct {
 	Body *StartSessionJSONRequestBody
 }
@@ -793,6 +946,9 @@ type StrictServerInterface interface {
 	// GetCurrentCandidate Get the authenticated candidate's profile.
 	// (GET /candidate/me)
 	GetCurrentCandidate(ctx context.Context, request GetCurrentCandidateRequestObject) (GetCurrentCandidateResponseObject, error)
+	// GetInterviewTimeline Replay an interview's events after an optional sequence cursor.
+	// (GET /interviews/{id}/timeline)
+	GetInterviewTimeline(ctx context.Context, request GetInterviewTimelineRequestObject) (GetInterviewTimelineResponseObject, error)
 	// StartSession Exchange a one-time invite for a scoped Candidate Workspace session token.
 	// (POST /session/start)
 	StartSession(ctx context.Context, request StartSessionRequestObject) (StartSessionResponseObject, error)
@@ -992,6 +1148,33 @@ func (sh *strictHandler) GetCurrentCandidate(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetCurrentCandidateResponseObject); ok {
 		if err := validResponse.VisitGetCurrentCandidateResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetInterviewTimeline operation middleware
+func (sh *strictHandler) GetInterviewTimeline(w http.ResponseWriter, r *http.Request, id InterviewId, params GetInterviewTimelineParams) {
+	var request GetInterviewTimelineRequestObject
+
+	request.Id = id
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInterviewTimeline(ctx, request.(GetInterviewTimelineRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInterviewTimeline")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetInterviewTimelineResponseObject); ok {
+		if err := validResponse.VisitGetInterviewTimelineResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
