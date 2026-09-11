@@ -48,6 +48,25 @@ services:
       timeout: 10s
       retries: 10
 
+  kafka-topic-init:
+    image: apache/kafka:3.8.0
+    network_mode: service:kafka
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command:
+      - /opt/kafka/bin/kafka-topics.sh
+      - --bootstrap-server
+      - localhost:9092
+      - --create
+      - --if-not-exists
+      - --topic
+      - session-events
+      - --partitions
+      - "6"
+      - --replication-factor
+      - "1"
+
   typesense:
     image: typesense/typesense:27.1
     ports:
