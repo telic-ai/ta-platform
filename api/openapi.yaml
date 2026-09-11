@@ -10,6 +10,39 @@ servers:
   - url: /v1
 
 paths:
+  /interviews/{id}/timeline:
+    get:
+      operationId: getInterviewTimeline
+      summary: Replay an interview's events after an optional sequence cursor.
+      tags: [replay]
+      security:
+        - companyIdentity: []
+      parameters:
+        - $ref: "#/components/parameters/InterviewId"
+        - name: after_seq
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Events ordered by ascending sequence number.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelineResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "503":
+          $ref: "#/components/responses/Error"
+        default:
+          $ref: "#/components/responses/Error"
+
   /session/start:
     post:
       operationId: startSession
@@ -169,8 +202,20 @@ components:
       type: http
       scheme: bearer
       bearerFormat: opaque
+    companyIdentity:
+      type: apiKey
+      in: header
+      name: X-Company-ID
+      description: Trusted company identity injected by the authenticated gateway.
 
   parameters:
+    InterviewId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     JobId:
       name: jobId
       in: path
@@ -193,6 +238,39 @@ components:
             $ref: "#/components/schemas/Error"
 
   schemas:
+    TimelineResponse:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineEvent"
+
+    TimelineEvent:
+      type: object
+      required: [event_id, company_id, interview_id, sequence_number, event_type, occurred_at, payload]
+      properties:
+        event_id:
+          type: string
+        company_id:
+          type: string
+          format: uuid
+        interview_id:
+          type: string
+          format: uuid
+        sequence_number:
+          type: integer
+          format: int64
+        event_type:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+        payload:
+          type: object
+          additionalProperties: true
+
     StartSessionRequest:
       type: object
       required: [inviteToken]
