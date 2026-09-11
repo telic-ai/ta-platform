@@ -38,6 +38,16 @@ func (c *Client) Reader(topic, groupID string) *kafkago.Reader {
 	})
 }
 
+// ReaderTopics returns one consumer-group reader subscribed to multiple
+// catalog topics. Kafka assigns each partition to exactly one group member.
+func (c *Client) ReaderTopics(topics []string, groupID string) *kafkago.Reader {
+	return kafkago.NewReader(kafkago.ReaderConfig{
+		Brokers:     c.brokers,
+		GroupTopics: topics,
+		GroupID:     groupID,
+	})
+}
+
 // Ping verifies at least one broker is reachable.
 func (c *Client) Ping(ctx context.Context) error {
 	if len(c.brokers) == 0 {
