@@ -33,6 +33,11 @@ design.
 - `internal/store/{postgres,kafka,clickhouse,redis,s3}` — thin client
   wrappers behind interfaces, each with a local integration test gated by
   the `integration` build tag (needs `make up`).
+- `internal/store/postgres/migrations` — embedded, transactional Postgres
+  migrations. `cmd/migrate` applies them through `make migrate-up` and rolls
+  back one version through `make migrate-down`.
+- `internal/domain` — persistence-neutral domain records. Tenant-owned records
+  carry `CompanyID`; Postgres keys and query helpers scope by it.
 - `internal/events` — envelope type and per-event-type payloads shared
   across services and Kafka topics.
 - `api/openapi.yaml` — the single source of truth for candidate + admin
@@ -49,6 +54,8 @@ design.
 - `make build` — `go build ./...`
 - `make test` — `go test ./...` (unit tests only)
 - `make integration-test` — `go test -tags integration ./...`, requires `make up`
+- `make migrate-up` / `make migrate-down` — apply all pending Postgres
+  migrations or roll back the latest version.
 - `make web-build` — `pnpm -r build` in `web/`
 - `make generate` — regenerate API stubs/clients from `api/openapi.yaml`
 - `make up` / `make down` — start/stop the local dependency stack

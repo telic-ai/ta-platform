@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -28,6 +29,36 @@ func (e JobStatus) Valid() bool {
 	case Closed:
 		return true
 	case Open:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for StartSessionResponseScope.
+const (
+	CandidateWorkspace StartSessionResponseScope = "candidate:workspace"
+)
+
+// Valid indicates whether the value is a known member of the StartSessionResponseScope enum.
+func (e StartSessionResponseScope) Valid() bool {
+	switch e {
+	case CandidateWorkspace:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for StartSessionResponseTokenType.
+const (
+	Bearer StartSessionResponseTokenType = "Bearer"
+)
+
+// Valid indicates whether the value is a known member of the StartSessionResponseTokenType enum.
+func (e StartSessionResponseTokenType) Valid() bool {
+	switch e {
+	case Bearer:
 		return true
 	default:
 		return false
@@ -80,6 +111,27 @@ type StageChangeRequest struct {
 	ToStage       string `json:"toStage"`
 }
 
+// StartSessionRequest defines model for StartSessionRequest.
+type StartSessionRequest struct {
+	InviteToken string `json:"inviteToken"`
+}
+
+// StartSessionResponse defines model for StartSessionResponse.
+type StartSessionResponse struct {
+	// AccessToken Opaque bearer token; this value is returned only once.
+	AccessToken string                        `json:"accessToken"`
+	ExpiresAt   time.Time                     `json:"expiresAt"`
+	Scope       StartSessionResponseScope     `json:"scope"`
+	SessionId   openapi_types.UUID            `json:"sessionId"`
+	TokenType   StartSessionResponseTokenType `json:"tokenType"`
+}
+
+// StartSessionResponseScope defines model for StartSessionResponse.Scope.
+type StartSessionResponseScope string
+
+// StartSessionResponseTokenType defines model for StartSessionResponse.TokenType.
+type StartSessionResponseTokenType string
+
 // CandidateId defines model for CandidateId.
 type CandidateId = string
 
@@ -91,6 +143,9 @@ type ChangeCandidateStageJSONRequestBody = StageChangeRequest
 
 // CreateJobJSONRequestBody defines body for CreateJob for application/json ContentType.
 type CreateJobJSONRequestBody = CreateJobRequest
+
+// StartSessionJSONRequestBody defines body for StartSession for application/json ContentType.
+type StartSessionJSONRequestBody = StartSessionRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -112,6 +167,9 @@ type ServerInterface interface {
 	// GetCurrentCandidate Get the authenticated candidate's profile.
 	// (GET /candidate/me)
 	GetCurrentCandidate(w http.ResponseWriter, r *http.Request)
+	// StartSession Exchange a one-time invite for a scoped Candidate Workspace session token.
+	// (POST /session/start)
+	StartSession(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -222,6 +280,20 @@ func (siw *ServerInterfaceWrapper) GetCurrentCandidate(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetCurrentCandidate(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartSession operation middleware
+func (siw *ServerInterfaceWrapper) StartSession(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartSession(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -351,6 +423,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/session/start", wrapper.StartSession)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/candidate/me", wrapper.GetCurrentCandidate)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/candidate/applications", wrapper.ListMyApplications)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/admin/jobs", wrapper.ListJobs)
@@ -540,6 +613,20 @@ func (response ListMyApplications200JSONResponse) VisitListMyApplicationsRespons
 	return err
 }
 
+type ListMyApplications409JSONResponse Error
+
+func (response ListMyApplications409JSONResponse) VisitListMyApplicationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListMyApplicationsdefaultJSONResponse struct {
 	Body       Error
 	StatusCode int
@@ -578,12 +665,103 @@ func (response GetCurrentCandidate200JSONResponse) VisitGetCurrentCandidateRespo
 	return err
 }
 
+type GetCurrentCandidate409JSONResponse Error
+
+func (response GetCurrentCandidate409JSONResponse) VisitGetCurrentCandidateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetCurrentCandidatedefaultJSONResponse struct {
 	Body       Error
 	StatusCode int
 }
 
 func (response GetCurrentCandidatedefaultJSONResponse) VisitGetCurrentCandidateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartSessionRequestObject struct {
+	Body *StartSessionJSONRequestBody
+}
+
+type StartSessionResponseObject interface {
+	VisitStartSessionResponse(w http.ResponseWriter) error
+}
+
+type StartSession200ResponseHeaders struct {
+	CacheControl *string
+}
+
+type StartSession200JSONResponse struct {
+	Body    StartSessionResponse
+	Headers StartSession200ResponseHeaders
+}
+
+func (response StartSession200JSONResponse) VisitStartSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.CacheControl != nil {
+		w.Header().Set("Cache-Control", fmt.Sprint(*response.Headers.CacheControl))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartSession400JSONResponse struct{ ErrorJSONResponse }
+
+func (response StartSession400JSONResponse) VisitStartSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartSession401JSONResponse Error
+
+func (response StartSession401JSONResponse) VisitStartSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartSessiondefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response StartSessiondefaultJSONResponse) VisitStartSessionResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -615,6 +793,9 @@ type StrictServerInterface interface {
 	// GetCurrentCandidate Get the authenticated candidate's profile.
 	// (GET /candidate/me)
 	GetCurrentCandidate(ctx context.Context, request GetCurrentCandidateRequestObject) (GetCurrentCandidateResponseObject, error)
+	// StartSession Exchange a one-time invite for a scoped Candidate Workspace session token.
+	// (POST /session/start)
+	StartSession(ctx context.Context, request StartSessionRequestObject) (StartSessionResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -811,6 +992,37 @@ func (sh *strictHandler) GetCurrentCandidate(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetCurrentCandidateResponseObject); ok {
 		if err := validResponse.VisitGetCurrentCandidateResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartSession operation middleware
+func (sh *strictHandler) StartSession(w http.ResponseWriter, r *http.Request) {
+	var request StartSessionRequestObject
+
+	var body StartSessionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StartSession(ctx, request.(StartSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartSession")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StartSessionResponseObject); ok {
+		if err := validResponse.VisitStartSessionResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
