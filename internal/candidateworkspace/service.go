@@ -19,7 +19,7 @@ import (
 
 const (
 	ScopeCandidateWorkspace = "candidate:workspace"
-	SessionEventsTopic      = "ta.session.events"
+	SessionEventsTopic      = "session-events"
 )
 
 var (

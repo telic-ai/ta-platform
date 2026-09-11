@@ -37,7 +37,9 @@ func main() {
 	writer := kafkaClient.Writer(candidateworkspace.SessionEventsTopic)
 	defer writer.Close()
 	store := postgres.NewSessionStore(db.Pool())
-	service := candidateworkspace.NewService(store, kafka.NewEventPublisher(writer), cfg.SessionTTL)
+	publisher := kafka.NewEventPublisher(writer)
+	defer publisher.Close()
+	service := candidateworkspace.NewService(store, publisher, cfg.SessionTTL)
 	server := &http.Server{Addr: cfg.HTTPAddr, Handler: candidateworkspace.NewHTTPHandler(service, store).Routes(), ReadHeaderTimeout: 5 * time.Second}
 
 	go func() {

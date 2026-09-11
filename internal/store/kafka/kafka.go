@@ -20,12 +20,14 @@ func New(brokers string) *Client {
 	return &Client{brokers: strings.Split(brokers, ",")}
 }
 
-// Writer returns a writer that publishes to topic.
+// Writer returns a durable, key-partitioned writer for topic. EventPublisher
+// owns asynchronous queueing and bounds the in-memory buffer.
 func (c *Client) Writer(topic string) *kafkago.Writer {
 	return &kafkago.Writer{
-		Addr:     kafkago.TCP(c.brokers...),
-		Topic:    topic,
-		Balancer: &kafkago.LeastBytes{},
+		Addr:         kafkago.TCP(c.brokers...),
+		Topic:        topic,
+		Balancer:     &kafkago.Hash{},
+		RequiredAcks: kafkago.RequireAll,
 	}
 }
 

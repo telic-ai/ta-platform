@@ -1,0 +1,46 @@
+asyncapi: 3.0.0
+info:
+  title: Session Events
+  version: 1.0.0
+  description: Candidate Workspace session lifecycle events.
+channels:
+  sessionEvents:
+    address: session-events
+    description: Records are keyed by session_id and ordered within one partition.
+    messages:
+      sessionStarted:
+        $ref: '#/components/messages/SessionStarted'
+operations:
+  publishSessionEvent:
+    action: send
+    channel:
+      $ref: '#/channels/sessionEvents'
+components:
+  messages:
+    SessionStarted:
+      name: session.started
+      contentType: application/json
+      correlationId:
+        location: $message.payload#/payload/session_id
+      payload:
+        $ref: '#/components/schemas/Envelope'
+  schemas:
+    Envelope:
+      type: object
+      required: [event_id, event_type, schema_version, company_id, sequence_number, occurred_at, payload]
+      properties:
+        event_id: {type: string}
+        event_type: {type: string, const: session.started}
+        schema_version: {type: integer, const: 1}
+        company_id: {type: string}
+        sequence_number: {type: integer, minimum: 0}
+        occurred_at: {type: string, format: date-time}
+        payload:
+          type: object
+          required: [session_id, user_id, invite_id, scope, expires_at]
+          properties:
+            session_id: {type: string, description: Kafka record key and ordering boundary.}
+            user_id: {type: string}
+            invite_id: {type: string}
+            scope: {type: string}
+            expires_at: {type: string, format: date-time}
