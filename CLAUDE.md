@@ -46,6 +46,13 @@ design.
 - `internal/auth` — opaque bearer-token hashing and session lookup. A
   session belongs either to a company member (`user_id`) or to a candidate's
   interview (`interview_id`).
+- `internal/aigateway` — AI Gateway (`cmd/ai-gateway`): `POST /v1/complete`
+  streams a model completion as SSE and always emits `ai.response.completed`.
+- `internal/sandbox` — Execution Sandbox runners (gVisor and local Docker)
+  behind one `Runner` interface. Its integration tests need a Docker engine,
+  the language images pulled, and `scripts/install-gvisor.sh` for the gVisor
+  cases (skipped if `runsc` is not registered). Reference pod manifests are
+  in `deploy/k8s/execution-sandbox/`.
 - `internal/e2e` — cross-service integration tests (`integration` tag).
 - `api/openapi.yaml` — the single source of truth for candidate + admin
   HTTP APIs; `make generate` produces Go server stubs

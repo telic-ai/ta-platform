@@ -1,0 +1,14 @@
+# Sandbox pods get no egress at all: no internet, no cluster services, no
+# DNS, and no cloud metadata service (169.254.169.254).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sandbox-deny-all
+  namespace: execution-sandbox
+spec:
+  podSelector:
+    matchLabels:
+      ta-platform.io/sandbox: "true"
+  policyTypes: [Ingress, Egress]
+  ingress: []
+  egress: []
