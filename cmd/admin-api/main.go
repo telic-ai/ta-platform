@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/telic-ai/ta-platform/internal/platform/logging"
 	"github.com/telic-ai/ta-platform/internal/rbac"
 	"github.com/telic-ai/ta-platform/internal/replay"
+	"github.com/telic-ai/ta-platform/internal/search"
 	"github.com/telic-ai/ta-platform/internal/store/clickhouse"
 	"github.com/telic-ai/ta-platform/internal/store/postgres"
 )
@@ -64,6 +66,13 @@ func main() {
 	resolver := rbac.Resolver{Sessions: postgres.NewSessionStore(db.Pool()), Roles: store}
 	handler := adminapi.NewHandler(store, resolver, adminapi.Config{})
 	dashboard.NewHandler(views, replay.NewClickHouseStore(clickhouseClient.Conn()), store).Mount(handler)
+	// TYPESENSE_SEARCH_KEY must be a search-only key, never the admin key:
+	// every key the app receives is derived from it.
+	search.NewIssuer(search.Config{
+		ParentKey:   os.Getenv("TYPESENSE_SEARCH_KEY"),
+		Host:        getenv("TYPESENSE_URL", "http://localhost:8108"),
+		Collections: splitNonEmpty(os.Getenv("TYPESENSE_COLLECTIONS")),
+	}).Mount(handler)
 
 	// The Admin API listens on :8082 locally so it can run beside
 	// candidate-api; HTTP_ADDR still overrides it.
@@ -83,4 +92,21 @@ func main() {
 		logger.Error("serve admin API", slog.Any("error", err))
 		os.Exit(1)
 	}
+}
+
+func getenv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func splitNonEmpty(raw string) []string {
+	var out []string
+	for _, part := range strings.Split(raw, ",") {
+		if part = strings.TrimSpace(part); part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
 }

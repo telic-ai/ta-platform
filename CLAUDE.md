@@ -71,6 +71,12 @@ design.
   and `GET /interviews/{id}/timeline` (honours the `replay` policy). View
   counts are at-least-once (a view sees Kafka redeliveries the events table
   later deduplicates).
+- `internal/search` — Typesense scoped keys: `POST /search/key` on the
+  Admin API derives a short-lived (≤1h) key from `TYPESENSE_SEARCH_KEY` (a
+  search-only parent key, never the admin key) that hard-embeds
+  `filter_by: company_id:=<company>`. Typesense ANDs it into every search
+  and rejects the key if it is altered; the integration test proves this
+  against the local Typesense.
 - `internal/demo` + `cmd/demo-seed` — `ENV=local` only: creates a company
   whose owner/interviewer/viewer have ready-made session tokens (member
   sign-in is not built yet) and prints them as JSON.

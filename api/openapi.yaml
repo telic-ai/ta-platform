@@ -840,6 +840,28 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  /search/key:
+    post:
+      operationId: issueSearchKey
+      summary: >
+        Issue a short-lived Typesense search key for the member's company.
+        The key is derived from a search-only parent key and hard-embeds
+        filter_by company_id:=<company>, which Typesense ANDs into every
+        search; altering it invalidates the key.
+      tags: [search]
+      security:
+        - companySession: []
+      x-permission: search
+      responses:
+        "201":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IssuedSearchKey"
+        default:
+          $ref: "#/components/responses/Error"
+
   /admin/jobs:
     get:
       operationId: listJobs
@@ -1422,6 +1444,19 @@ components:
         lines_removed: {type: integer, format: int64}
         first_at: {type: string, format: date-time}
         last_at: {type: string, format: date-time}
+    IssuedSearchKey:
+      type: object
+      required: [key, filter_by, expires_at, host, collections]
+      properties:
+        key: {type: string}
+        filter_by:
+          type: string
+          description: The embedded filter, company_id:=<company id>.
+        expires_at: {type: string, format: date-time}
+        host: {type: string}
+        collections:
+          type: array
+          items: {type: string}
     Candidate:
       type: object
       required: [id, email, fullName]

@@ -24,6 +24,7 @@ export type PolicyKey = Schemas["PolicyKey"];
 export type DashboardOverview = Schemas["DashboardOverview"];
 export type InterviewActivity = Schemas["InterviewActivity"];
 export type TimelineEvent = Schemas["TimelineEvent"];
+export type IssuedSearchKey = Schemas["IssuedSearchKey"];
 
 /** A non-2xx response from the Admin API or live monitor. */
 export class CompanyApiError extends Error {
@@ -177,6 +178,15 @@ export class CompanyClient {
 
   async dashboardInterviews(): Promise<InterviewActivity[]> {
     return (await this.request<{ interviews: InterviewActivity[] }>("GET", "/dashboard/interviews")).interviews;
+  }
+
+  /**
+   * A short-lived Typesense key scoped to the member's company: it embeds
+   * filter_by company_id:=<company>, so searches with it never see another
+   * company's documents.
+   */
+  issueSearchKey(): Promise<IssuedSearchKey> {
+    return this.request("POST", "/search/key");
   }
 
   /** The interview's events after afterSeq, in order, for replay. */

@@ -96,6 +96,16 @@ describe("CompanyClient requests", () => {
     expect(JSON.parse(calls[16].init.body as string)).toEqual({ enabled: false });
   });
 
+  it("requests a company-scoped search key", async () => {
+    const issued = { key: "k", filter_by: "company_id:=c1", expires_at: "2026-09-27T13:00:00Z", host: "http://ts", collections: ["interviews"] };
+    const { fetch, calls } = fakeFetch(() => json(201, issued));
+    const c = new CompanyClient({ baseUrl: BASE, token: "t", fetch });
+    expect(await c.issueSearchKey()).toEqual(issued);
+    expect(calls[0].init.method).toBe("POST");
+    expect(calls[0].url).toBe("https://admin.example.test/api/search/key");
+    expect(calls[0].init.body).toBeUndefined();
+  });
+
   it("resolves 204s to undefined", async () => {
     const { fetch } = fakeFetch(() => new Response(null, { status: 204 }));
     const c = new CompanyClient({ baseUrl: BASE, token: "t", fetch });

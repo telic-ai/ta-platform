@@ -413,6 +413,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/search/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue a short-lived Typesense search key for the member's company. The key is derived from a search-only parent key and hard-embeds filter_by company_id:=<company>, which Typesense ANDs into every search; altering it invalidates the key. */
+        post: operations["issueSearchKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/jobs": {
         parameters: {
             query?: never;
@@ -815,6 +832,15 @@ export interface components {
             first_at: string;
             /** Format: date-time */
             last_at: string;
+        };
+        IssuedSearchKey: {
+            key: string;
+            /** @description The embedded filter, company_id:=<company id>. */
+            filter_by: string;
+            /** Format: date-time */
+            expires_at: string;
+            host: string;
+            collections: string[];
         };
         Candidate: {
             id: string;
@@ -1690,6 +1716,27 @@ export interface operations {
                     "application/json": {
                         interviews: components["schemas"]["InterviewActivity"][];
                     };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    issueSearchKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssuedSearchKey"];
                 };
             };
             default: components["responses"]["Error"];

@@ -515,6 +515,17 @@ type Invite struct {
 	Token string `json:"token"`
 }
 
+// IssuedSearchKey defines model for IssuedSearchKey.
+type IssuedSearchKey struct {
+	Collections []string  `json:"collections"`
+	ExpiresAt   time.Time `json:"expires_at"`
+
+	// FilterBy The embedded filter, company_id:=<company id>.
+	FilterBy string `json:"filter_by"`
+	Host     string `json:"host"`
+	Key      string `json:"key"`
+}
+
 // Job defines model for Job.
 type Job struct {
 	Id       string    `json:"id"`
@@ -889,6 +900,9 @@ type ServerInterface interface {
 	// SetPolicy Turn a policy on or off.
 	// (PUT /policies/{key})
 	SetPolicy(w http.ResponseWriter, r *http.Request, key PolicyKey)
+	// IssueSearchKey Issue a short-lived Typesense search key for the member's company. The key is derived from a search-only parent key and hard-embeds filter_by company_id:=<company>, which Typesense ANDs into every search; altering it invalidates the key.
+	// (POST /search/key)
+	IssueSearchKey(w http.ResponseWriter, r *http.Request)
 	// SubmitDiff Record one debounced edit to a workspace file.
 	// (POST /session/diff)
 	SubmitDiff(w http.ResponseWriter, r *http.Request)
@@ -1470,6 +1484,20 @@ func (siw *ServerInterfaceWrapper) SetPolicy(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// IssueSearchKey operation middleware
+func (siw *ServerInterfaceWrapper) IssueSearchKey(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.IssueSearchKey(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SubmitDiff operation middleware
 func (siw *ServerInterfaceWrapper) SubmitDiff(w http.ResponseWriter, r *http.Request) {
 
@@ -1948,6 +1976,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/policies/{key}", wrapper.SetPolicy)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/dashboard/overview", wrapper.GetDashboardOverview)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/dashboard/interviews", wrapper.GetDashboardInterviews)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/search/key", wrapper.IssueSearchKey)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/admin/jobs", wrapper.ListJobs)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/admin/jobs", wrapper.CreateJob)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/admin/jobs/{jobId}", wrapper.GetJob)
@@ -2924,6 +2953,44 @@ func (response SetPolicydefaultJSONResponse) VisitSetPolicyResponse(w http.Respo
 	return err
 }
 
+type IssueSearchKeyRequestObject struct {
+}
+
+type IssueSearchKeyResponseObject interface {
+	VisitIssueSearchKeyResponse(w http.ResponseWriter) error
+}
+
+type IssueSearchKey201JSONResponse IssuedSearchKey
+
+func (response IssueSearchKey201JSONResponse) VisitIssueSearchKeyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type IssueSearchKeydefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response IssueSearchKeydefaultJSONResponse) VisitIssueSearchKeyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SubmitDiffRequestObject struct {
 	Body *SubmitDiffJSONRequestBody
 }
@@ -3794,6 +3861,9 @@ type StrictServerInterface interface {
 	// SetPolicy Turn a policy on or off.
 	// (PUT /policies/{key})
 	SetPolicy(ctx context.Context, request SetPolicyRequestObject) (SetPolicyResponseObject, error)
+	// IssueSearchKey Issue a short-lived Typesense search key for the member's company. The key is derived from a search-only parent key and hard-embeds filter_by company_id:=<company>, which Typesense ANDs into every search; altering it invalidates the key.
+	// (POST /search/key)
+	IssueSearchKey(ctx context.Context, request IssueSearchKeyRequestObject) (IssueSearchKeyResponseObject, error)
 	// SubmitDiff Record one debounced edit to a workspace file.
 	// (POST /session/diff)
 	SubmitDiff(ctx context.Context, request SubmitDiffRequestObject) (SubmitDiffResponseObject, error)
@@ -4481,6 +4551,30 @@ func (sh *strictHandler) SetPolicy(w http.ResponseWriter, r *http.Request, key P
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(SetPolicyResponseObject); ok {
 		if err := validResponse.VisitSetPolicyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// IssueSearchKey operation middleware
+func (sh *strictHandler) IssueSearchKey(w http.ResponseWriter, r *http.Request) {
+	var request IssueSearchKeyRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.IssueSearchKey(ctx, request.(IssueSearchKeyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "IssueSearchKey")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(IssueSearchKeyResponseObject); ok {
+		if err := validResponse.VisitIssueSearchKeyResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
