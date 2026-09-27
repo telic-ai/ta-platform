@@ -13,6 +13,8 @@ channels:
     messages:
       sessionStarted:
         $ref: '#/components/messages/SessionStarted'
+      aiResponseCompleted:
+        $ref: '#/components/messages/AIResponseCompleted'
 operations:
   publishSessionEvent:
     action: send
@@ -27,6 +29,37 @@ components:
         location: $message.payload#/payload/session_id
       payload:
         $ref: '#/components/schemas/Envelope'
+    AIResponseCompleted:
+      name: ai.response.completed
+      contentType: application/json
+      description: >
+        Produced directly by the AI Gateway (acks=all) for every completion,
+        whatever its outcome. sequence_number is allocated by the Candidate
+        Workspace together with the prompt.submitted that caused it, so it is
+        always greater than that prompt's sequence_number.
+      payload:
+        type: object
+        required: [event_id, event_type, schema_version, company_id, sequence_number, occurred_at, payload]
+        properties:
+          event_type: {type: string, const: ai.response.completed}
+          schema_version: {type: integer, const: 1}
+          payload:
+            type: object
+            required: [session_id, interview_id, prompt_id, mode, provider, model, status, response_text, input_tokens, output_tokens, latency_ms]
+            properties:
+              session_id: {type: string}
+              interview_id: {type: string}
+              prompt_id: {type: string}
+              mode: {type: string, enum: [managed, byok]}
+              provider: {type: string}
+              model: {type: string}
+              status: {type: string, enum: [completed, truncated, refused, error, cancelled]}
+              stop_reason: {type: string, description: Provider stop reason, e.g. end_turn or max_tokens.}
+              error_code: {type: string, description: Stable non-sensitive code; set for error and cancelled.}
+              response_text: {type: string, description: Text streamed before the completion ended.}
+              input_tokens: {type: integer}
+              output_tokens: {type: integer}
+              latency_ms: {type: integer}
   schemas:
     Envelope:
       type: object
