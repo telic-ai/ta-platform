@@ -18,6 +18,7 @@ const (
 	EventTypeInterviewScheduled    EventType = "interview.scheduled"
 	EventTypeInterviewCompleted    EventType = "interview.completed"
 	EventTypeSessionStarted        EventType = "session.started"
+	EventTypeAIResponseCompleted   EventType = "ai.response.completed"
 )
 
 // SessionStarted is emitted after an invite has been exchanged for an
@@ -32,6 +33,38 @@ type SessionStarted struct {
 
 func (SessionStarted) EventType() EventType { return EventTypeSessionStarted }
 func (SessionStarted) SchemaVersion() int   { return 1 }
+
+// AI response statuses. ai.response.completed is emitted for every
+// completion attempt, whatever its outcome.
+const (
+	AIResponseStatusCompleted = "completed"
+	AIResponseStatusTruncated = "truncated"
+	AIResponseStatusRefused   = "refused"
+	AIResponseStatusError     = "error"
+	AIResponseStatusCancelled = "cancelled"
+)
+
+// AIResponseCompleted records the outcome of one AI Gateway completion.
+// ResponseText holds whatever was streamed before the completion ended.
+// Credentials are never included.
+type AIResponseCompleted struct {
+	SessionID    string `json:"session_id"`
+	InterviewID  string `json:"interview_id"`
+	PromptID     string `json:"prompt_id"`
+	Mode         string `json:"mode"`
+	Provider     string `json:"provider"`
+	Model        string `json:"model"`
+	Status       string `json:"status"`
+	StopReason   string `json:"stop_reason,omitempty"`
+	ErrorCode    string `json:"error_code,omitempty"`
+	ResponseText string `json:"response_text"`
+	InputTokens  int64  `json:"input_tokens"`
+	OutputTokens int64  `json:"output_tokens"`
+	LatencyMS    int64  `json:"latency_ms"`
+}
+
+func (AIResponseCompleted) EventType() EventType { return EventTypeAIResponseCompleted }
+func (AIResponseCompleted) SchemaVersion() int   { return 1 }
 
 // JobPosted is emitted when a company publishes a new job requisition.
 type JobPosted struct {
