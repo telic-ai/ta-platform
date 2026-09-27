@@ -70,11 +70,12 @@ func TestMigrationsAndTenantIsolation(t *testing.T) {
 		"invites": "interview_id", "sessions": "interview_id", "interviews": "last_sequence_number",
 		"event_outbox": "envelope",
 	})
+	assertColumns(t, ctx, pool, schema, map[string]string{"sessions": "last_diff_sequence"})
 	assertCrossTenantQueryReturnsNothing(t, ctx, pool)
 	assertSessionHasExactlyOnePrincipal(t, ctx, pool)
 
 	// Roll back every migration, newest first.
-	const migrationCount = 5
+	const migrationCount = 6
 	for version := migrationCount; version > 0; version-- {
 		if err := runner.Down(ctx); err != nil {
 			t.Fatalf("migrate down from version %d: %v", version, err)

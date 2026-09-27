@@ -110,6 +110,9 @@ func TestEachEventTypeRoundTrips(t *testing.T) {
 		InterviewScheduled{InterviewID: "iv_1"},
 		InterviewCompleted{InterviewID: "iv_1", Outcome: "pass"},
 		SessionStarted{SessionID: "session_1", InterviewID: "iv_1", InviteID: "invite_1"},
+		ExecutionRequested{SessionID: "session_1", ExecutionID: "e_1", Language: "python"},
+		ExecutionCompleted{SessionID: "session_1", ExecutionID: "e_1", Status: ExecutionStatusTimedOut, ExitCode: -1},
+		CodeDiff{SessionID: "session_1", ClientSequence: 3, Origin: DiffOriginAIApplied, LinesAdded: 2, LinesRemoved: 1},
 		PromptSubmitted{SessionID: "session_1", PromptID: "p_1", Prompt: "hi", CompletionSequenceNumber: 3},
 		AIResponseCompleted{SessionID: "session_1", PromptID: "p_1", Status: AIResponseStatusTruncated},
 	}

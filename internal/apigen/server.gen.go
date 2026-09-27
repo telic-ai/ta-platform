@@ -37,6 +37,39 @@ func (e ChatMessageRole) Valid() bool {
 	}
 }
 
+// Defines values for DiffRequestOrigin.
+const (
+	AiApplied DiffRequestOrigin = "ai_applied"
+	Manual    DiffRequestOrigin = "manual"
+)
+
+// Valid indicates whether the value is a known member of the DiffRequestOrigin enum.
+func (e DiffRequestOrigin) Valid() bool {
+	switch e {
+	case AiApplied:
+		return true
+	case Manual:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DiffResultReason.
+const (
+	OutOfOrder DiffResultReason = "out_of_order"
+)
+
+// Valid indicates whether the value is a known member of the DiffResultReason enum.
+func (e DiffResultReason) Valid() bool {
+	switch e {
+	case OutOfOrder:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JobStatus.
 const (
 	Closed JobStatus = "closed"
@@ -76,6 +109,54 @@ func (e PromptDoneStatus) Valid() bool {
 	case PromptDoneStatusRefused:
 		return true
 	case PromptDoneStatusTruncated:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunRequestLanguage.
+const (
+	Javascript RunRequestLanguage = "javascript"
+	Python     RunRequestLanguage = "python"
+	Shell      RunRequestLanguage = "shell"
+)
+
+// Valid indicates whether the value is a known member of the RunRequestLanguage enum.
+func (e RunRequestLanguage) Valid() bool {
+	switch e {
+	case Javascript:
+		return true
+	case Python:
+		return true
+	case Shell:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunResultStatus.
+const (
+	RunResultStatusError     RunResultStatus = "error"
+	RunResultStatusFailed    RunResultStatus = "failed"
+	RunResultStatusOomKilled RunResultStatus = "oom_killed"
+	RunResultStatusSucceeded RunResultStatus = "succeeded"
+	RunResultStatusTimedOut  RunResultStatus = "timed_out"
+)
+
+// Valid indicates whether the value is a known member of the RunResultStatus enum.
+func (e RunResultStatus) Valid() bool {
+	switch e {
+	case RunResultStatusError:
+		return true
+	case RunResultStatusFailed:
+		return true
+	case RunResultStatusOomKilled:
+		return true
+	case RunResultStatusSucceeded:
+		return true
+	case RunResultStatusTimedOut:
 		return true
 	default:
 		return false
@@ -143,6 +224,34 @@ type CreateJobRequest struct {
 	Title    string  `json:"title"`
 }
 
+// DiffRequest defines model for DiffRequest.
+type DiffRequest struct {
+	ClientSeq int64             `json:"clientSeq"`
+	Origin    DiffRequestOrigin `json:"origin"`
+
+	// Patch Single-file unified diff; hunk line counts must match.
+	Patch string `json:"patch"`
+	Path  string `json:"path"`
+
+	// PromptId For ai_applied diffs, the prompt whose answer was applied.
+	PromptId *openapi_types.UUID `json:"promptId,omitempty"`
+}
+
+// DiffRequestOrigin defines model for DiffRequest.Origin.
+type DiffRequestOrigin string
+
+// DiffResult defines model for DiffResult.
+type DiffResult struct {
+	Accepted       bool              `json:"accepted"`
+	LinesAdded     int               `json:"linesAdded"`
+	LinesRemoved   int               `json:"linesRemoved"`
+	Reason         *DiffResultReason `json:"reason,omitempty"`
+	SequenceNumber *int64            `json:"sequenceNumber,omitempty"`
+}
+
+// DiffResultReason defines model for DiffResult.Reason.
+type DiffResultReason string
+
 // Error defines model for Error.
 type Error struct {
 	Code    *string `json:"code,omitempty"`
@@ -188,6 +297,35 @@ type PromptRequest struct {
 	History *[]ChatMessage `json:"history,omitempty"`
 	Prompt  string         `json:"prompt"`
 }
+
+// RunRequest defines model for RunRequest.
+type RunRequest struct {
+	// Entrypoint The file in `files` to run.
+	Entrypoint string `json:"entrypoint"`
+
+	// Files Workspace snapshot, keyed by relative path.
+	Files    map[string]string  `json:"files"`
+	Language RunRequestLanguage `json:"language"`
+	Stdin    *string            `json:"stdin,omitempty"`
+}
+
+// RunRequestLanguage defines model for RunRequest.Language.
+type RunRequestLanguage string
+
+// RunResult defines model for RunResult.
+type RunResult struct {
+	DurationMs      int64              `json:"durationMs"`
+	ExecutionId     openapi_types.UUID `json:"executionId"`
+	ExitCode        int                `json:"exitCode"`
+	Status          RunResultStatus    `json:"status"`
+	Stderr          string             `json:"stderr"`
+	StderrTruncated bool               `json:"stderrTruncated"`
+	Stdout          string             `json:"stdout"`
+	StdoutTruncated bool               `json:"stdoutTruncated"`
+}
+
+// RunResultStatus defines model for RunResult.Status.
+type RunResultStatus string
 
 // StageChangeRequest defines model for StageChangeRequest.
 type StageChangeRequest struct {
@@ -252,8 +390,14 @@ type ChangeCandidateStageJSONRequestBody = StageChangeRequest
 // CreateJobJSONRequestBody defines body for CreateJob for application/json ContentType.
 type CreateJobJSONRequestBody = CreateJobRequest
 
+// SubmitDiffJSONRequestBody defines body for SubmitDiff for application/json ContentType.
+type SubmitDiffJSONRequestBody = DiffRequest
+
 // SubmitPromptJSONRequestBody defines body for SubmitPrompt for application/json ContentType.
 type SubmitPromptJSONRequestBody = PromptRequest
+
+// RunCodeJSONRequestBody defines body for RunCode for application/json ContentType.
+type RunCodeJSONRequestBody = RunRequest
 
 // StartSessionJSONRequestBody defines body for StartSession for application/json ContentType.
 type StartSessionJSONRequestBody = StartSessionRequest
@@ -281,9 +425,15 @@ type ServerInterface interface {
 	// GetInterviewTimeline Replay an interview's events after an optional sequence cursor.
 	// (GET /interviews/{id}/timeline)
 	GetInterviewTimeline(w http.ResponseWriter, r *http.Request, id InterviewId, params GetInterviewTimelineParams)
+	// SubmitDiff Record one debounced edit to a workspace file.
+	// (POST /session/diff)
+	SubmitDiff(w http.ResponseWriter, r *http.Request)
 	// SubmitPrompt Send a prompt to the AI assistant and stream its answer.
 	// (POST /session/prompt)
 	SubmitPrompt(w http.ResponseWriter, r *http.Request)
+	// RunCode Run the candidate's code in the Execution Sandbox and wait for the result.
+	// (POST /session/run)
+	RunCode(w http.ResponseWriter, r *http.Request)
 	// StartSession Exchange a one-time invite for a scoped Candidate Workspace session token.
 	// (POST /session/start)
 	StartSession(w http.ResponseWriter, r *http.Request)
@@ -448,11 +598,39 @@ func (siw *ServerInterfaceWrapper) GetInterviewTimeline(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// SubmitDiff operation middleware
+func (siw *ServerInterfaceWrapper) SubmitDiff(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SubmitDiff(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SubmitPrompt operation middleware
 func (siw *ServerInterfaceWrapper) SubmitPrompt(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SubmitPrompt(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RunCode operation middleware
+func (siw *ServerInterfaceWrapper) RunCode(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunCode(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -599,6 +777,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/interviews/{id}/timeline", wrapper.GetInterviewTimeline)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/session/start", wrapper.StartSession)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/session/prompt", wrapper.SubmitPrompt)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/session/run", wrapper.RunCode)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/session/diff", wrapper.SubmitDiff)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/candidate/me", wrapper.GetCurrentCandidate)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/candidate/applications", wrapper.ListMyApplications)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/admin/jobs", wrapper.ListJobs)
@@ -953,6 +1133,115 @@ func (response GetInterviewTimelinedefaultJSONResponse) VisitGetInterviewTimelin
 	return err
 }
 
+type SubmitDiffRequestObject struct {
+	Body *SubmitDiffJSONRequestBody
+}
+
+type SubmitDiffResponseObject interface {
+	VisitSubmitDiffResponse(w http.ResponseWriter) error
+}
+
+type SubmitDiff200JSONResponse DiffResult
+
+func (response SubmitDiff200JSONResponse) VisitSubmitDiffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitDiff202JSONResponse DiffResult
+
+func (response SubmitDiff202JSONResponse) VisitSubmitDiffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitDiff400JSONResponse struct{ ErrorJSONResponse }
+
+func (response SubmitDiff400JSONResponse) VisitSubmitDiffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitDiff401JSONResponse Error
+
+func (response SubmitDiff401JSONResponse) VisitSubmitDiffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitDiff409JSONResponse Error
+
+func (response SubmitDiff409JSONResponse) VisitSubmitDiffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitDiff503JSONResponse Error
+
+func (response SubmitDiff503JSONResponse) VisitSubmitDiffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitDiffdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response SubmitDiffdefaultJSONResponse) VisitSubmitDiffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SubmitPromptRequestObject struct {
 	Body *SubmitPromptJSONRequestBody
 }
@@ -1077,6 +1366,115 @@ func (response SubmitPromptdefaultJSONResponse) VisitSubmitPromptResponse(w http
 	return err
 }
 
+type RunCodeRequestObject struct {
+	Body *RunCodeJSONRequestBody
+}
+
+type RunCodeResponseObject interface {
+	VisitRunCodeResponse(w http.ResponseWriter) error
+}
+
+type RunCode200JSONResponse RunResult
+
+func (response RunCode200JSONResponse) VisitRunCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunCode400JSONResponse struct{ ErrorJSONResponse }
+
+func (response RunCode400JSONResponse) VisitRunCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunCode401JSONResponse Error
+
+func (response RunCode401JSONResponse) VisitRunCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunCode409JSONResponse Error
+
+func (response RunCode409JSONResponse) VisitRunCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunCode429JSONResponse Error
+
+func (response RunCode429JSONResponse) VisitRunCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunCode503JSONResponse Error
+
+func (response RunCode503JSONResponse) VisitRunCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunCodedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response RunCodedefaultJSONResponse) VisitRunCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type StartSessionRequestObject struct {
 	Body *StartSessionJSONRequestBody
 }
@@ -1177,9 +1575,15 @@ type StrictServerInterface interface {
 	// GetInterviewTimeline Replay an interview's events after an optional sequence cursor.
 	// (GET /interviews/{id}/timeline)
 	GetInterviewTimeline(ctx context.Context, request GetInterviewTimelineRequestObject) (GetInterviewTimelineResponseObject, error)
+	// SubmitDiff Record one debounced edit to a workspace file.
+	// (POST /session/diff)
+	SubmitDiff(ctx context.Context, request SubmitDiffRequestObject) (SubmitDiffResponseObject, error)
 	// SubmitPrompt Send a prompt to the AI assistant and stream its answer.
 	// (POST /session/prompt)
 	SubmitPrompt(ctx context.Context, request SubmitPromptRequestObject) (SubmitPromptResponseObject, error)
+	// RunCode Run the candidate's code in the Execution Sandbox and wait for the result.
+	// (POST /session/run)
+	RunCode(ctx context.Context, request RunCodeRequestObject) (RunCodeResponseObject, error)
 	// StartSession Exchange a one-time invite for a scoped Candidate Workspace session token.
 	// (POST /session/start)
 	StartSession(ctx context.Context, request StartSessionRequestObject) (StartSessionResponseObject, error)
@@ -1413,6 +1817,37 @@ func (sh *strictHandler) GetInterviewTimeline(w http.ResponseWriter, r *http.Req
 	}
 }
 
+// SubmitDiff operation middleware
+func (sh *strictHandler) SubmitDiff(w http.ResponseWriter, r *http.Request) {
+	var request SubmitDiffRequestObject
+
+	var body SubmitDiffJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SubmitDiff(ctx, request.(SubmitDiffRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SubmitDiff")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SubmitDiffResponseObject); ok {
+		if err := validResponse.VisitSubmitDiffResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // SubmitPrompt operation middleware
 func (sh *strictHandler) SubmitPrompt(w http.ResponseWriter, r *http.Request) {
 	var request SubmitPromptRequestObject
@@ -1437,6 +1872,37 @@ func (sh *strictHandler) SubmitPrompt(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(SubmitPromptResponseObject); ok {
 		if err := validResponse.VisitSubmitPromptResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RunCode operation middleware
+func (sh *strictHandler) RunCode(w http.ResponseWriter, r *http.Request) {
+	var request RunCodeRequestObject
+
+	var body RunCodeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RunCode(ctx, request.(RunCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RunCodeResponseObject); ok {
+		if err := validResponse.VisitRunCodeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

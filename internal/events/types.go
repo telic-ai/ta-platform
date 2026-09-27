@@ -20,6 +20,9 @@ const (
 	EventTypeSessionStarted        EventType = "session.started"
 	EventTypeAIResponseCompleted   EventType = "ai.response.completed"
 	EventTypePromptSubmitted       EventType = "prompt.submitted"
+	EventTypeExecutionRequested    EventType = "execution.requested"
+	EventTypeExecutionCompleted    EventType = "execution.completed"
+	EventTypeCodeDiff              EventType = "code.diff"
 )
 
 // SessionStarted is emitted after an invite has been exchanged for an
@@ -49,6 +52,75 @@ type PromptSubmitted struct {
 
 func (PromptSubmitted) EventType() EventType { return EventTypePromptSubmitted }
 func (PromptSubmitted) SchemaVersion() int   { return 1 }
+
+// ExecutionRequested records a run after its snapshot is stored and before
+// the sandbox is called.
+type ExecutionRequested struct {
+	SessionID     string `json:"session_id"`
+	InterviewID   string `json:"interview_id"`
+	ExecutionID   string `json:"execution_id"`
+	Language      string `json:"language"`
+	Entrypoint    string `json:"entrypoint"`
+	SnapshotKey   string `json:"snapshot_key"`
+	FileCount     int    `json:"file_count"`
+	SnapshotBytes int    `json:"snapshot_bytes"`
+}
+
+func (ExecutionRequested) EventType() EventType { return EventTypeExecutionRequested }
+func (ExecutionRequested) SchemaVersion() int   { return 1 }
+
+// Execution statuses. error means the sandbox itself failed; the others
+// describe the candidate's program.
+const (
+	ExecutionStatusSucceeded = "succeeded"
+	ExecutionStatusFailed    = "failed"
+	ExecutionStatusTimedOut  = "timed_out"
+	ExecutionStatusOOMKilled = "oom_killed"
+	ExecutionStatusError     = "error"
+)
+
+// ExecutionCompleted records a run's outcome. Output is capped; the
+// truncated flags say whether anything was cut.
+type ExecutionCompleted struct {
+	SessionID       string `json:"session_id"`
+	InterviewID     string `json:"interview_id"`
+	ExecutionID     string `json:"execution_id"`
+	Status          string `json:"status"`
+	ExitCode        int    `json:"exit_code"`
+	DurationMS      int64  `json:"duration_ms"`
+	Stdout          string `json:"stdout"`
+	Stderr          string `json:"stderr"`
+	StdoutTruncated bool   `json:"stdout_truncated"`
+	StderrTruncated bool   `json:"stderr_truncated"`
+	ErrorCode       string `json:"error_code,omitempty"`
+}
+
+func (ExecutionCompleted) EventType() EventType { return EventTypeExecutionCompleted }
+func (ExecutionCompleted) SchemaVersion() int   { return 1 }
+
+// Code diff origins: typed by the candidate, or an AI suggestion the
+// candidate applied. Their ratio is a scoring signal.
+const (
+	DiffOriginManual    = "manual"
+	DiffOriginAIApplied = "ai_applied"
+)
+
+// CodeDiff records one accepted edit to a workspace file as a unified diff.
+// ClientSequence is the workspace client's per-session edit counter.
+type CodeDiff struct {
+	SessionID      string `json:"session_id"`
+	InterviewID    string `json:"interview_id"`
+	ClientSequence int64  `json:"client_sequence"`
+	Origin         string `json:"origin"`
+	PromptID       string `json:"prompt_id,omitempty"`
+	Path           string `json:"path"`
+	Patch          string `json:"patch"`
+	LinesAdded     int    `json:"lines_added"`
+	LinesRemoved   int    `json:"lines_removed"`
+}
+
+func (CodeDiff) EventType() EventType { return EventTypeCodeDiff }
+func (CodeDiff) SchemaVersion() int   { return 1 }
 
 // AI response statuses. ai.response.completed is emitted for every
 // completion attempt, whatever its outcome.

@@ -109,6 +109,87 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  /session/run:
+    post:
+      operationId: runCode
+      summary: Run the candidate's code in the Execution Sandbox and wait for the result.
+      description: >
+        Stores a snapshot of the files, records execution.requested, runs
+        the code synchronously in the sandbox, and records
+        execution.completed. Only one run per session may be in flight; a
+        second request while one is active gets 429.
+      tags: [session]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunRequest"
+      responses:
+        "200":
+          description: The finished run. Program failures and timeouts are results, not errors.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunResult"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+        "503":
+          $ref: "#/components/responses/Error"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /session/diff:
+    post:
+      operationId: submitDiff
+      summary: Record one debounced edit to a workspace file.
+      description: >
+        The client debounces keystrokes into one unified diff per burst and
+        numbers diffs from 1 per session. A diff whose clientSeq is not
+        greater than the last accepted one is dropped (200, accepted
+        false). Accepted diffs are recorded as code.diff with lines
+        added/removed.
+      tags: [session]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiffRequest"
+      responses:
+        "202":
+          description: Accepted and recorded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiffResult"
+        "200":
+          description: Dropped as out of order; do not retry.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiffResult"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "503":
+          $ref: "#/components/responses/Error"
+        default:
+          $ref: "#/components/responses/Error"
+
   /candidate/me:
     get:
       operationId: getCurrentCandidate
@@ -399,6 +480,90 @@ components:
           type: string
         errorCode:
           type: string
+
+    RunRequest:
+      type: object
+      required: [language, entrypoint, files]
+      additionalProperties: false
+      properties:
+        language:
+          type: string
+          enum: [python, javascript, shell]
+        entrypoint:
+          type: string
+          description: The file in `files` to run.
+        files:
+          type: object
+          description: Workspace snapshot, keyed by relative path.
+          additionalProperties:
+            type: string
+        stdin:
+          type: string
+          maxLength: 65536
+
+    RunResult:
+      type: object
+      required: [executionId, status, exitCode, stdout, stderr, stdoutTruncated, stderrTruncated, durationMs]
+      properties:
+        executionId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [succeeded, failed, timed_out, oom_killed, error]
+        exitCode:
+          type: integer
+        stdout:
+          type: string
+        stderr:
+          type: string
+        stdoutTruncated:
+          type: boolean
+        stderrTruncated:
+          type: boolean
+        durationMs:
+          type: integer
+          format: int64
+
+    DiffRequest:
+      type: object
+      required: [clientSeq, origin, path, patch]
+      additionalProperties: false
+      properties:
+        clientSeq:
+          type: integer
+          format: int64
+          minimum: 1
+        origin:
+          type: string
+          enum: [manual, ai_applied]
+        promptId:
+          type: string
+          format: uuid
+          description: For ai_applied diffs, the prompt whose answer was applied.
+        path:
+          type: string
+        patch:
+          type: string
+          description: Single-file unified diff; hunk line counts must match.
+          maxLength: 262144
+
+    DiffResult:
+      type: object
+      required: [accepted, linesAdded, linesRemoved]
+      properties:
+        accepted:
+          type: boolean
+        sequenceNumber:
+          type: integer
+          format: int64
+        reason:
+          type: string
+          enum: [out_of_order]
+        linesAdded:
+          type: integer
+        linesRemoved:
+          type: integer
 
     Error:
       type: object

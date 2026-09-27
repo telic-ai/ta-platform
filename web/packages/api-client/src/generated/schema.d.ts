@@ -58,6 +58,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/session/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the candidate's code in the Execution Sandbox and wait for the result.
+         * @description Stores a snapshot of the files, records execution.requested, runs the code synchronously in the sandbox, and records execution.completed. Only one run per session may be in flight; a second request while one is active gets 429.
+         */
+        post: operations["runCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/session/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record one debounced edit to a workspace file.
+         * @description The client debounces keystrokes into one unified diff per burst and numbers diffs from 1 per session. A diff whose clientSeq is not greater than the last accepted one is dropped (200, accepted false). Accepted diffs are recorded as code.diff with lines added/removed.
+         */
+        post: operations["submitDiff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/candidate/me": {
         parameters: {
             query?: never;
@@ -209,6 +249,53 @@ export interface components {
             stopReason?: string;
             errorCode?: string;
         };
+        RunRequest: {
+            /** @enum {string} */
+            language: "python" | "javascript" | "shell";
+            /** @description The file in `files` to run. */
+            entrypoint: string;
+            /** @description Workspace snapshot, keyed by relative path. */
+            files: {
+                [key: string]: string;
+            };
+            stdin?: string;
+        };
+        RunResult: {
+            /** Format: uuid */
+            executionId: string;
+            /** @enum {string} */
+            status: "succeeded" | "failed" | "timed_out" | "oom_killed" | "error";
+            exitCode: number;
+            stdout: string;
+            stderr: string;
+            stdoutTruncated: boolean;
+            stderrTruncated: boolean;
+            /** Format: int64 */
+            durationMs: number;
+        };
+        DiffRequest: {
+            /** Format: int64 */
+            clientSeq: number;
+            /** @enum {string} */
+            origin: "manual" | "ai_applied";
+            /**
+             * Format: uuid
+             * @description For ai_applied diffs, the prompt whose answer was applied.
+             */
+            promptId?: string;
+            path: string;
+            /** @description Single-file unified diff; hunk line counts must match. */
+            patch: string;
+        };
+        DiffResult: {
+            accepted: boolean;
+            /** Format: int64 */
+            sequenceNumber?: number;
+            /** @enum {string} */
+            reason?: "out_of_order";
+            linesAdded: number;
+            linesRemoved: number;
+        };
         Error: {
             message: string;
             code?: string;
@@ -341,6 +428,74 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": string;
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    runCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunRequest"];
+            };
+        };
+        responses: {
+            /** @description The finished run. Program failures and timeouts are results, not errors. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunResult"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    submitDiff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiffRequest"];
+            };
+        };
+        responses: {
+            /** @description Dropped as out of order; do not retry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiffResult"];
+                };
+            };
+            /** @description Accepted and recorded. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiffResult"];
                 };
             };
             400: components["responses"]["Error"];

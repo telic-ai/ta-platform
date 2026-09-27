@@ -17,6 +17,12 @@ channels:
         $ref: '#/components/messages/PromptSubmitted'
       aiResponseCompleted:
         $ref: '#/components/messages/AIResponseCompleted'
+      executionRequested:
+        $ref: '#/components/messages/ExecutionRequested'
+      executionCompleted:
+        $ref: '#/components/messages/ExecutionCompleted'
+      codeDiff:
+        $ref: '#/components/messages/CodeDiff'
 operations:
   publishSessionEvent:
     action: send
@@ -86,6 +92,79 @@ components:
               input_tokens: {type: integer}
               output_tokens: {type: integer}
               latency_ms: {type: integer}
+    ExecutionRequested:
+      name: execution.requested
+      contentType: application/json
+      description: Written after the run's snapshot is stored in S3 and before the sandbox is called.
+      payload:
+        type: object
+        properties:
+          event_type: {type: string, const: execution.requested}
+          schema_version: {type: integer, const: 1}
+          payload:
+            type: object
+            required: [session_id, interview_id, execution_id, language, entrypoint, snapshot_key, file_count, snapshot_bytes]
+            properties:
+              session_id: {type: string}
+              interview_id: {type: string}
+              execution_id: {type: string}
+              language: {type: string}
+              entrypoint: {type: string}
+              snapshot_key: {type: string, description: "S3 key: companies/{company}/interviews/{interview}/snapshots/{execution}.json"}
+              file_count: {type: integer}
+              snapshot_bytes: {type: integer}
+    ExecutionCompleted:
+      name: execution.completed
+      contentType: application/json
+      description: >
+        Written once the sandbox returns, for every requested execution,
+        including when the candidate disconnected. Output is capped at 64 KiB
+        per stream.
+      payload:
+        type: object
+        properties:
+          event_type: {type: string, const: execution.completed}
+          schema_version: {type: integer, const: 1}
+          payload:
+            type: object
+            required: [session_id, interview_id, execution_id, status, exit_code, duration_ms, stdout, stderr, stdout_truncated, stderr_truncated]
+            properties:
+              session_id: {type: string}
+              interview_id: {type: string}
+              execution_id: {type: string}
+              status: {type: string, enum: [succeeded, failed, timed_out, oom_killed, error]}
+              exit_code: {type: integer, description: -1 when the program was killed or never ran.}
+              duration_ms: {type: integer}
+              stdout: {type: string}
+              stderr: {type: string}
+              stdout_truncated: {type: boolean}
+              stderr_truncated: {type: boolean}
+              error_code: {type: string, description: Set when status is error.}
+    CodeDiff:
+      name: code.diff
+      contentType: application/json
+      description: >
+        One accepted, debounced edit. Diffs whose client_sequence is not
+        greater than the session's last accepted one are dropped and never
+        produce this event. origin feeds the manual-vs-AI ratio.
+      payload:
+        type: object
+        properties:
+          event_type: {type: string, const: code.diff}
+          schema_version: {type: integer, const: 1}
+          payload:
+            type: object
+            required: [session_id, interview_id, client_sequence, origin, path, patch, lines_added, lines_removed]
+            properties:
+              session_id: {type: string}
+              interview_id: {type: string}
+              client_sequence: {type: integer}
+              origin: {type: string, enum: [manual, ai_applied]}
+              prompt_id: {type: string, description: The applied prompt, for ai_applied diffs.}
+              path: {type: string}
+              patch: {type: string, description: Single-file unified diff.}
+              lines_added: {type: integer}
+              lines_removed: {type: integer}
   schemas:
     Envelope:
       type: object

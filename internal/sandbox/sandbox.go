@@ -174,6 +174,10 @@ func normalize(spec Spec) (Spec, Language, error) {
 	return spec, language, nil
 }
 
+// ValidatePath reports whether name is an acceptable workspace file path:
+// relative, clean, and inside the workspace.
+func ValidatePath(name string) error { return validPath(name) }
+
 func validPath(name string) error {
 	switch {
 	case name == "" || len(name) > 255:

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -15,6 +16,8 @@ import (
 	"github.com/telic-ai/ta-platform/internal/platform/logging"
 	"github.com/telic-ai/ta-platform/internal/store/kafka"
 	"github.com/telic-ai/ta-platform/internal/store/postgres"
+	"github.com/telic-ai/ta-platform/internal/store/redis"
+	"github.com/telic-ai/ta-platform/internal/store/s3"
 )
 
 func main() {
@@ -59,7 +62,19 @@ func main() {
 	prompts := candidateworkspace.NewPromptService(postgres.NewEventStore(db.Pool()),
 		candidateworkspace.NewHTTPGateway(cfg.AIGatewayURL, nil),
 		candidateworkspace.PromptConfig{Model: cfg.AIModel, System: candidateSystemPrompt})
-	handler := candidateworkspace.NewHTTPHandler(service, store).WithPrompts(prompts)
+	redisClient, err := redis.New(cfg.RedisAddr)
+	if err != nil {
+		logger.Error("connect redis", slog.Any("error", err))
+		os.Exit(1)
+	}
+	defer redisClient.Close()
+	snapshots := s3.New(s3.Config{Endpoint: cfg.S3Endpoint, Bucket: cfg.S3Bucket, AccessKey: cfg.S3AccessKey, SecretKey: cfg.S3SecretKey})
+	runs := candidateworkspace.NewRunService(postgres.NewEventStore(db.Pool()), snapshots,
+		candidateworkspace.NewHTTPExecutor(cfg.SandboxURL, nil),
+		runLock{redis.NewLocker(redisClient, "candidate-workspace:")},
+		candidateworkspace.RunConfig{Timeout: cfg.RunTimeout, Logger: logger})
+	diffs := candidateworkspace.NewDiffService(postgres.NewEventStore(db.Pool()))
+	handler := candidateworkspace.NewHTTPHandler(service, store).WithPrompts(prompts).WithRuns(runs).WithDiffs(diffs)
 	// No WriteTimeout: prompt answers stream for as long as the model runs.
 	server := &http.Server{Addr: cfg.HTTPAddr, Handler: handler.Routes(), ReadHeaderTimeout: 5 * time.Second}
 
@@ -81,3 +96,14 @@ func main() {
 const candidateSystemPrompt = "You are the coding assistant inside a candidate's technical interview " +
 	"workspace. Help the candidate with their task the way a strong pair programmer would: explain " +
 	"your reasoning, propose code the candidate can apply, and keep answers focused on their code."
+
+// runLock adapts the Redis locker to the workspace's RunLock.
+type runLock struct{ locker *redis.Locker }
+
+func (l runLock) Acquire(ctx context.Context, key string, ttl time.Duration) (func(context.Context) error, error) {
+	release, err := l.locker.Acquire(ctx, key, ttl)
+	if errors.Is(err, redis.ErrLocked) {
+		return nil, candidateworkspace.ErrLockHeld
+	}
+	return release, err
+}
