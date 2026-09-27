@@ -13,7 +13,8 @@ import (
 	"github.com/telic-ai/ta-platform/internal/events"
 )
 
-const DefaultTopic = "ta.interview.events"
+// DefaultTopic is the topic Candidate Workspace publishes session events to.
+const DefaultTopic = events.SessionEventsTopic
 
 type MessageReader interface {
 	FetchMessage(context.Context) (kafkago.Message, error)
@@ -28,6 +29,10 @@ type Inserter interface {
 type Config struct {
 	BatchSize int
 	BatchWait time.Duration
+	// OnInvalid is called for each message that cannot be decoded into an
+	// events row. Such messages are skipped and committed with their batch:
+	// redelivering them could never succeed and would stall the partition.
+	OnInvalid func(kafkago.Message, error)
 }
 
 type Writer struct {
@@ -91,7 +96,10 @@ func (w *Writer) Run(ctx context.Context) error {
 		for _, message := range messages {
 			row, decodeErr := Decode(message.Value, w.now().UTC())
 			if decodeErr != nil {
-				return fmt.Errorf("event-log-writer: decode partition %d offset %d: %w", message.Partition, message.Offset, decodeErr)
+				if w.config.OnInvalid != nil {
+					w.config.OnInvalid(message, decodeErr)
+				}
+				continue
 			}
 			rows = append(rows, row)
 		}

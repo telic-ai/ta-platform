@@ -40,6 +40,13 @@ design.
   carry `CompanyID`; Postgres keys and query helpers scope by it.
 - `internal/events` — envelope type and per-event-type payloads shared
   across services and Kafka topics.
+- `internal/outbox` — transactional outbox relay. Services write events to
+  the Postgres `event_outbox` table in the same transaction as the state
+  change; the relay publishes them to Kafka in order.
+- `internal/auth` — opaque bearer-token hashing and session lookup. A
+  session belongs either to a company member (`user_id`) or to a candidate's
+  interview (`interview_id`).
+- `internal/e2e` — cross-service integration tests (`integration` tag).
 - `api/openapi.yaml` — the single source of truth for candidate + admin
   HTTP APIs; `make generate` produces Go server stubs
   (`internal/apigen/...` via oapi-codegen) and the TS client in

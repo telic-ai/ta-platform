@@ -38,7 +38,7 @@ func Load(serviceName string) (Config, error) {
 		PostgresDSN:   getenv("POSTGRES_DSN", "postgres://postgres:postgres@localhost:5432/ta_platform?sslmode=disable"),
 		KafkaBrokers:  getenv("KAFKA_BROKERS", "localhost:9092"),
 		RedisAddr:     getenv("REDIS_ADDR", "localhost:6379"),
-		ClickHouseDSN: getenv("CLICKHOUSE_DSN", "clickhouse://localhost:9000/default"),
+		ClickHouseDSN: getenv("CLICKHOUSE_DSN", "clickhouse://default:local-dev@localhost:9000/default"),
 		S3Endpoint:    getenv("S3_ENDPOINT", "http://localhost:9100"),
 		S3Bucket:      getenv("S3_BUCKET", "ta-platform"),
 		S3AccessKey:   getenv("S3_ACCESS_KEY", "minioadmin"),

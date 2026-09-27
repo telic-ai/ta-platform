@@ -44,14 +44,15 @@ func (s *InterviewStore) Get(ctx context.Context, companyID, interviewID uuid.UU
 	err := s.pool.QueryRow(ctx, `
         SELECT id, company_id, created_by, candidate_name, candidate_email,
                status, scheduled_at, terminal_at, erase_requested_at,
-               legal_hold, purged_at, created_at, updated_at
+               legal_hold, purged_at, last_sequence_number, created_at,
+               updated_at
           FROM interviews
          WHERE company_id = $1 AND id = $2`, companyID, interviewID).Scan(
 		&interview.ID, &interview.CompanyID, &interview.CreatedBy,
 		&interview.CandidateName, &interview.CandidateEmail, &interview.Status,
 		&interview.ScheduledAt, &interview.TerminalAt,
 		&interview.EraseRequestedAt, &interview.LegalHold, &interview.PurgedAt,
-		&interview.CreatedAt, &interview.UpdatedAt,
+		&interview.LastSequenceNumber, &interview.CreatedAt, &interview.UpdatedAt,
 	)
 	if err != nil {
 		return domain.Interview{}, fmt.Errorf("get interview: %w", err)

@@ -3,6 +3,8 @@ package events
 import "time"
 
 // SessionEventsTopic is the Event Catalog topic for session lifecycle events.
+// Records are keyed by session_id so one session's events stay ordered on one
+// partition.
 const SessionEventsTopic = "session-events"
 
 // Event type constants form the platform's event catalog.
@@ -21,11 +23,11 @@ const (
 // SessionStarted is emitted after an invite has been exchanged for an
 // Active Candidate Workspace session. Tokens are never included in events.
 type SessionStarted struct {
-	SessionID string    `json:"session_id"`
-	UserID    string    `json:"user_id"`
-	InviteID  string    `json:"invite_id"`
-	Scope     string    `json:"scope"`
-	ExpiresAt time.Time `json:"expires_at"`
+	SessionID   string    `json:"session_id"`
+	InterviewID string    `json:"interview_id"`
+	InviteID    string    `json:"invite_id"`
+	Scope       string    `json:"scope"`
+	ExpiresAt   time.Time `json:"expires_at"`
 }
 
 func (SessionStarted) EventType() EventType { return EventTypeSessionStarted }

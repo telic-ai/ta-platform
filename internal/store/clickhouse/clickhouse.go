@@ -15,7 +15,7 @@ type Client struct {
 }
 
 // New connects to ClickHouse using dsn, e.g.
-// "clickhouse://localhost:9000/default" (see internal/platform/config).
+// "clickhouse://default:local-dev@localhost:9000/default" (see internal/platform/config).
 func New(dsn string) (*Client, error) {
 	opts, err := clickhouse.ParseDSN(dsn)
 	if err != nil {

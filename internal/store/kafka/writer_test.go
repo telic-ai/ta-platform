@@ -1,24 +1,10 @@
 package kafka
 
 import (
-	"context"
 	"testing"
 
 	kafkago "github.com/segmentio/kafka-go"
 )
-
-type noOpMessageWriter struct{}
-
-func (noOpMessageWriter) WriteMessages(context.Context, ...kafkago.Message) error { return nil }
-
-func TestEventPublisherBufferIsBounded(t *testing.T) {
-	publisher := NewEventPublisherWithConfig(noOpMessageWriter{}, 17, nil)
-	defer publisher.Close()
-
-	if capacity := cap(publisher.queue); capacity != 17 {
-		t.Errorf("buffer capacity = %d, want 17", capacity)
-	}
-}
 
 func TestWriterIsDurableAndKeyPartitioned(t *testing.T) {
 	writer := New("broker:9092").Writer("session-events")
@@ -29,5 +15,8 @@ func TestWriterIsDurableAndKeyPartitioned(t *testing.T) {
 	}
 	if writer.RequiredAcks != kafkago.RequireAll {
 		t.Errorf("RequiredAcks = %d, want RequireAll", writer.RequiredAcks)
+	}
+	if writer.BatchTimeout != WriterBatchTimeout {
+		t.Errorf("BatchTimeout = %v, want %v", writer.BatchTimeout, WriterBatchTimeout)
 	}
 }

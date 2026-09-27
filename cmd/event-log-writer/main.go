@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	kafkago "github.com/segmentio/kafka-go"
 	"github.com/telic-ai/ta-platform/internal/eventlogwriter"
 	"github.com/telic-ai/ta-platform/internal/platform/config"
 	"github.com/telic-ai/ta-platform/internal/platform/logging"
@@ -55,7 +56,17 @@ func main() {
 
 	topics := splitNonEmpty(getenv("EVENT_LOG_TOPICS", eventlogwriter.DefaultTopic))
 	reader := kafka.New(cfg.KafkaBrokers).ReaderTopics(topics, getenv("EVENT_LOG_GROUP_ID", "event-log-writer-v1"))
-	writer, err := eventlogwriter.New(reader, store, eventlogwriter.Config{BatchSize: batchSize, BatchWait: batchWait})
+	writer, err := eventlogwriter.New(reader, store, eventlogwriter.Config{
+		BatchSize: batchSize,
+		BatchWait: batchWait,
+		OnInvalid: func(message kafkago.Message, err error) {
+			logger.Error("skip invalid event",
+				slog.String("topic", message.Topic),
+				slog.Int("partition", message.Partition),
+				slog.Int64("offset", message.Offset),
+				slog.Any("error", err))
+		},
+	})
 	if err != nil {
 		logger.Error("create event log writer", slog.Any("error", err))
 		os.Exit(1)

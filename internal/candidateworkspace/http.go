@@ -5,15 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strings"
 	"time"
 
+	"github.com/telic-ai/ta-platform/internal/auth"
 	"github.com/telic-ai/ta-platform/internal/domain"
 )
-
-type SessionFinder interface {
-	FindSessionByTokenHash(context.Context, []byte) (domain.Session, error)
-}
 
 type contextKey struct{}
 
@@ -24,17 +20,18 @@ func ActiveSessionFromContext(ctx context.Context) (domain.Session, bool) {
 	return session, ok
 }
 
-// RequireActiveSession authenticates an opaque bearer token. Known sessions
-// outside the Active state intentionally return 409, not 401.
-func RequireActiveSession(finder SessionFinder, next http.Handler) http.Handler {
+// RequireActiveSession authenticates a candidate's opaque bearer token.
+// Company member tokens are rejected. Known candidate sessions outside the
+// Active state intentionally return 409, not 401.
+func RequireActiveSession(finder auth.SessionFinder, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		scheme, token, ok := strings.Cut(r.Header.Get("Authorization"), " ")
-		if !ok || !strings.EqualFold(scheme, "Bearer") || token == "" || strings.Contains(token, " ") {
+		token, ok := auth.BearerToken(r)
+		if !ok {
 			writeError(w, http.StatusUnauthorized, "invalid_session_token", "a valid bearer token is required")
 			return
 		}
-		session, err := finder.FindSessionByTokenHash(r.Context(), HashToken(token))
-		if errors.Is(err, ErrSessionNotFound) {
+		session, err := finder.FindSessionByTokenHash(r.Context(), auth.HashToken(token))
+		if errors.Is(err, auth.ErrSessionNotFound) || (err == nil && !session.IsCandidate()) {
 			writeError(w, http.StatusUnauthorized, "invalid_session_token", "a valid bearer token is required")
 			return
 		}
@@ -42,7 +39,7 @@ func RequireActiveSession(finder SessionFinder, next http.Handler) http.Handler 
 			writeError(w, http.StatusInternalServerError, "internal_error", "could not validate session")
 			return
 		}
-		if session.State != domain.SessionStateActive || session.RevokedAt != nil || !session.ExpiresAt.After(time.Now()) {
+		if !session.IsActive(time.Now()) {
 			writeError(w, http.StatusConflict, "session_not_active", "session is not Active")
 			return
 		}
@@ -52,10 +49,10 @@ func RequireActiveSession(finder SessionFinder, next http.Handler) http.Handler 
 
 type HTTPHandler struct {
 	service *Service
-	finder  SessionFinder
+	finder  auth.SessionFinder
 }
 
-func NewHTTPHandler(service *Service, finder SessionFinder) *HTTPHandler {
+func NewHTTPHandler(service *Service, finder auth.SessionFinder) *HTTPHandler {
 	return &HTTPHandler{service: service, finder: finder}
 }
 

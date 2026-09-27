@@ -69,6 +69,52 @@ func TestWriterDoesNotCommitFailedInsert(t *testing.T) {
 	}
 }
 
+func TestWriterSkipsAndCommitsUndecodableMessages(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	reader := &fakeReader{messages: []kafkago.Message{
+		{Partition: 0, Offset: 1, Value: []byte("not json")},
+		{Partition: 0, Offset: 2, Value: eventValue(t, "interview-1", 1)},
+	}, cancel: cancel}
+	store := &fakeInserter{}
+	var invalid []int64
+	writer, err := New(reader, store, Config{
+		BatchSize: 2, BatchWait: time.Second,
+		OnInvalid: func(message kafkago.Message, _ error) { invalid = append(invalid, message.Offset) },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Run(ctx); !errors.Is(err, context.Canceled) {
+		t.Fatalf("Run error = %v", err)
+	}
+	if len(store.rows) != 1 || store.rows[0].InterviewID != "interview-1" {
+		t.Fatalf("inserted rows = %+v, want only the valid event", store.rows)
+	}
+	if len(invalid) != 1 || invalid[0] != 1 {
+		t.Fatalf("invalid offsets = %v, want [1]", invalid)
+	}
+	if reader.committed != 2 {
+		t.Fatalf("committed messages = %d, want 2", reader.committed)
+	}
+}
+
+func TestDecodeAcceptsSessionStarted(t *testing.T) {
+	envelope, err := events.New("company-1", 1, events.SessionStarted{
+		SessionID: "session-1", InterviewID: "interview-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	value, _ := json.Marshal(envelope)
+	row, err := Decode(value, time.Now())
+	if err != nil {
+		t.Fatalf("Decode: %v", err)
+	}
+	if row.InterviewID != "interview-1" || row.SessionID == nil || *row.SessionID != "session-1" {
+		t.Fatalf("promoted row = %+v", row)
+	}
+}
+
 func eventValue(t *testing.T, interviewID string, sequence int64) []byte {
 	t.Helper()
 	envelope, err := events.New("company-1", sequence, events.InterviewCompleted{InterviewID: interviewID})

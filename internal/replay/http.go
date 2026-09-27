@@ -3,30 +3,47 @@ package replay
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/telic-ai/ta-platform/internal/auth"
 )
 
 var ErrUnauthenticated = errors.New("company identity is required")
 
 // TenantResolver supplies the authenticated company. It is intentionally
 // separate from request parameters so clients cannot select another tenant.
+// Errors other than ErrUnauthenticated mean identity could not be checked.
 type TenantResolver interface {
 	CompanyID(*http.Request) (uuid.UUID, error)
 }
 
-type HeaderTenantResolver struct{}
+// SessionTenantResolver authenticates a company member's opaque bearer token
+// and scopes the request to that member's company. Candidate Workspace
+// tokens are rejected: candidates must not read interview replays.
+type SessionTenantResolver struct {
+	Sessions auth.SessionFinder
+}
 
-// CompanyID resolves the development gateway's authenticated tenant header.
-// Production ingress must strip user-supplied X-Company-ID and inject its own.
-func (HeaderTenantResolver) CompanyID(r *http.Request) (uuid.UUID, error) {
-	id, err := uuid.Parse(r.Header.Get("X-Company-ID"))
-	if err != nil {
+func (s SessionTenantResolver) CompanyID(r *http.Request) (uuid.UUID, error) {
+	token, ok := auth.BearerToken(r)
+	if !ok {
 		return uuid.Nil, ErrUnauthenticated
 	}
-	return id, nil
+	session, err := s.Sessions.FindSessionByTokenHash(r.Context(), auth.HashToken(token))
+	if errors.Is(err, auth.ErrSessionNotFound) {
+		return uuid.Nil, ErrUnauthenticated
+	}
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("resolve company session: %w", err)
+	}
+	if session.UserID == nil || session.IsCandidate() || !session.IsActive(time.Now()) {
+		return uuid.Nil, ErrUnauthenticated
+	}
+	return session.CompanyID, nil
 }
 
 type HTTPHandler struct {
@@ -46,8 +63,12 @@ func (h *HTTPHandler) Routes() http.Handler {
 
 func (h *HTTPHandler) timeline(w http.ResponseWriter, r *http.Request) {
 	companyID, err := h.tenants.CompanyID(r)
-	if err != nil {
+	if errors.Is(err, ErrUnauthenticated) {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "authenticated company is required")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "identity_unavailable", "could not verify identity")
 		return
 	}
 	interviewID, err := uuid.Parse(r.PathValue("id"))
