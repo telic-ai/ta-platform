@@ -145,6 +145,8 @@ func (g *Gateway) Complete(ctx context.Context, request CompleteRequest, onDelta
 			return onDelta(delta)
 		})
 	}
+	// The resolver hands out a private copy per call; wipe it now.
+	providerRequest.APIKey.Zero()
 	outcome.Usage = result.Usage
 	if result.Model != "" {
 		outcome.Model = result.Model

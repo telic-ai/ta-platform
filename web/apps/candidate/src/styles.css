@@ -1,0 +1,18 @@
+:root { font-family: system-ui, sans-serif; color: #1d2330; background: #f6f7f9; }
+body { margin: 0; }
+.start { max-width: 360px; margin: 15vh auto; display: grid; gap: 12px; }
+.start input { display: block; width: 100%; margin-top: 4px; padding: 8px; box-sizing: border-box; }
+.workspace { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; padding: 16px; height: 100vh; box-sizing: border-box; }
+.editor { display: grid; grid-template-rows: auto 1fr auto; gap: 8px; min-height: 0; }
+.editor header { display: flex; gap: 8px; align-items: center; }
+.editor .file { flex: 1; color: #5b6475; font-family: ui-monospace, monospace; }
+.editor textarea { font-family: ui-monospace, monospace; font-size: 14px; padding: 12px; resize: none; min-height: 0; }
+.run pre, .answer { background: #fff; border: 1px solid #dde1e8; padding: 8px; white-space: pre-wrap; max-height: 30vh; overflow: auto; }
+.status-succeeded { color: #1a7f37; } .status-failed, .status-error, .status-oom_killed { color: #cf222e; } .status-timed_out { color: #9a6700; }
+.assistant { display: grid; grid-template-rows: 1fr auto; gap: 8px; min-height: 0; }
+.turns { list-style: none; margin: 0; padding: 0; overflow: auto; }
+.prompt { font-weight: 600; }
+.note { color: #5b6475; font-size: 13px; }
+.assistant form { display: flex; gap: 8px; }
+.assistant textarea { flex: 1; }
+@media (max-width: 800px) { .workspace { grid-template-columns: 1fr; height: auto; } }

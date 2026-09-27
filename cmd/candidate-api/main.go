@@ -61,7 +61,8 @@ func main() {
 	service := candidateworkspace.NewService(store, cfg.SessionTTL)
 	prompts := candidateworkspace.NewPromptService(postgres.NewEventStore(db.Pool()),
 		candidateworkspace.NewHTTPGateway(cfg.AIGatewayURL, nil),
-		candidateworkspace.PromptConfig{Model: cfg.AIModel, System: candidateSystemPrompt})
+		candidateworkspace.PromptConfig{Model: cfg.AIModel, System: candidateSystemPrompt,
+			Mode: postgres.NewCompanyStore(db.Pool()).AIKeyMode})
 	redisClient, err := redis.New(cfg.RedisAddr)
 	if err != nil {
 		logger.Error("connect redis", slog.Any("error", err))

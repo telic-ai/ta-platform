@@ -9,10 +9,16 @@
     "build": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "generate": "openapi-typescript ../../../api/openapi.yaml -o ./src/generated/schema.d.ts",
-    "lint": "echo 'no-op: lint not yet configured for @ta-platform/api-client'"
+    "lint": "echo 'no-op: lint not yet configured for @ta-platform/api-client'",
+    "test": "vitest run"
   },
   "devDependencies": {
+    "@types/node": "^26.6.3",
     "openapi-typescript": "^7.4.1",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "diff": "^9.0.0"
   }
 }

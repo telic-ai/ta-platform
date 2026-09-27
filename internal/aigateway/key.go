@@ -33,6 +33,14 @@ func (k *Key) Reveal() string {
 	return string(k.value)
 }
 
+// Clone returns an independent copy, so the original can be zeroed
+// without affecting it. Cloning a zeroed key yields a zeroed key.
+func (k *Key) Clone() *Key {
+	k.mu.RLock()
+	defer k.mu.RUnlock()
+	return NewKey(k.value)
+}
+
 // Zeroed reports whether Zero has been called (or the key is empty).
 func (k *Key) Zeroed() bool {
 	k.mu.RLock()

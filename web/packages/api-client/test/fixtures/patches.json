@@ -1,0 +1,65 @@
+[
+  {
+    "name": "edit and append",
+    "path": "main.py",
+    "before": "import sys\nprint(1)\nx = 1\n",
+    "after": "import sys\nprint(2)\nprint(3)\nx = 1\n",
+    "patch": "--- a/main.py\n+++ b/main.py\n@@ -1,3 +1,4 @@\n import sys\n-print(1)\n+print(2)\n+print(3)\n x = 1\n",
+    "linesAdded": 2,
+    "linesRemoved": 1
+  },
+  {
+    "name": "new file",
+    "path": "src/util.py",
+    "before": "",
+    "after": "def f():\n    return 1\n",
+    "patch": "--- a/src/util.py\n+++ b/src/util.py\n@@ -0,0 +1,2 @@\n+def f():\n+    return 1\n",
+    "linesAdded": 2,
+    "linesRemoved": 0
+  },
+  {
+    "name": "delete everything",
+    "path": "main.py",
+    "before": "a\nb\n",
+    "after": "",
+    "patch": "--- a/main.py\n+++ b/main.py\n@@ -1,2 +0,0 @@\n-a\n-b\n",
+    "linesAdded": 0,
+    "linesRemoved": 2
+  },
+  {
+    "name": "no trailing newline",
+    "path": "main.py",
+    "before": "a",
+    "after": "b",
+    "patch": "--- a/main.py\n+++ b/main.py\n@@ -1,1 +1,1 @@\n-a\n\\ No newline at end of file\n+b\n\\ No newline at end of file\n",
+    "linesAdded": 1,
+    "linesRemoved": 1
+  },
+  {
+    "name": "two distant hunks",
+    "path": "main.py",
+    "before": "line 0\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14\nline 15\nline 16\nline 17\nline 18\nline 19\nline 20\nline 21\nline 22\nline 23\nline 24\nline 25\nline 26\nline 27\nline 28\nline 29\n",
+    "after": "line 0\nline 1\nchanged 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14\nline 15\nline 16\nline 17\nline 18\nline 19\nline 20\nline 21\nline 22\nline 23\nline 24\nchanged 25\nline 26\nline 27\nline 28\nline 29\n",
+    "patch": "--- a/main.py\n+++ b/main.py\n@@ -1,6 +1,6 @@\n line 0\n line 1\n-line 2\n+changed 2\n line 3\n line 4\n line 5\n@@ -23,7 +23,7 @@\n line 22\n line 23\n line 24\n-line 25\n+changed 25\n line 26\n line 27\n line 28\n",
+    "linesAdded": 2,
+    "linesRemoved": 2
+  },
+  {
+    "name": "header-like content",
+    "path": "notes.md",
+    "before": "--- title\n",
+    "after": "--- title\n+++ more\n-- dash\n",
+    "patch": "--- a/notes.md\n+++ b/notes.md\n@@ -1,1 +1,3 @@\n --- title\n++++ more\n+-- dash\n",
+    "linesAdded": 2,
+    "linesRemoved": 0
+  },
+  {
+    "name": "unicode",
+    "path": "main.py",
+    "before": "print('hi')\n",
+    "after": "print('héllo 👋')\n",
+    "patch": "--- a/main.py\n+++ b/main.py\n@@ -1,1 +1,1 @@\n-print('hi')\n+print('héllo 👋')\n",
+    "linesAdded": 1,
+    "linesRemoved": 1
+  }
+]

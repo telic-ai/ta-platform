@@ -1,4 +1,4 @@
-.PHONY: build test integration-test lint generate check web-build web-lint up down smoke migrate-up migrate-down
+.PHONY: build test integration-test lint generate check web-build web-test web-lint up down smoke migrate-up migrate-down
 
 build:
 	go build ./...
@@ -21,6 +21,9 @@ generate:
 web-build:
 	cd web && pnpm install --frozen-lockfile=false && pnpm -r build
 
+web-test:
+	cd web && pnpm -r test
+
 up:
 	docker compose -f deploy/docker-compose.yml up -d
 
@@ -36,4 +39,4 @@ migrate-up:
 migrate-down:
 	go run ./cmd/migrate down
 
-check: build test web-build
+check: build test web-build web-test
