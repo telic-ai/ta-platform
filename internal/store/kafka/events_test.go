@@ -22,11 +22,13 @@ func TestEventPublisherWritesSessionStartedEnvelope(t *testing.T) {
 		t.Fatalf("events.New: %v", err)
 	}
 	writer := &recordingMessageWriter{}
-	if err := NewEventPublisher(writer).Publish(context.Background(), "session-1", envelope); err != nil {
+	publisher := NewEventPublisher(writer)
+	if err := publisher.Publish(context.Background(), envelope); err != nil {
 		t.Fatalf("Publish: %v", err)
 	}
+	publisher.Close()
 	if string(writer.message.Key) != "session-1" {
-		t.Errorf("message key = %q", writer.message.Key)
+		t.Errorf("message key = %q, want session-1", writer.message.Key)
 	}
 	if len(writer.message.Headers) != 1 || string(writer.message.Headers[0].Value) != "session.started" {
 		t.Errorf("event_type header = %+v", writer.message.Headers)
@@ -40,10 +42,14 @@ func TestEventPublisherWritesSessionStartedEnvelope(t *testing.T) {
 	}
 }
 
-func TestEventPublisherRejectsEmptySessionID(t *testing.T) {
-	writer := &recordingMessageWriter{}
-	err := NewEventPublisher(writer).Publish(context.Background(), "", events.Envelope{})
-	if err == nil {
-		t.Fatal("Publish with an empty session ID should fail")
+func TestEventPublisherRejectsMissingSessionID(t *testing.T) {
+	envelope, err := events.New("company-1", 1, events.SessionStarted{})
+	if err != nil {
+		t.Fatalf("events.New: %v", err)
+	}
+	publisher := NewEventPublisher(&recordingMessageWriter{})
+	defer publisher.Close()
+	if err := publisher.Publish(context.Background(), envelope); err == nil {
+		t.Fatal("Publish should reject an empty session_id")
 	}
 }

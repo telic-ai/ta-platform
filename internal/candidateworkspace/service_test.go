@@ -26,13 +26,9 @@ func (s *recordingStore) StartSession(_ context.Context, inviteHash []byte, para
 	return s.result, nil
 }
 
-type recordingPublisher struct {
-	sessionID string
-	envelope  events.Envelope
-}
+type recordingPublisher struct{ envelope events.Envelope }
 
-func (p *recordingPublisher) Publish(_ context.Context, sessionID string, envelope events.Envelope) error {
-	p.sessionID = sessionID
+func (p *recordingPublisher) Publish(_ context.Context, envelope events.Envelope) error {
 	p.envelope = envelope
 	return nil
 }
@@ -67,9 +63,6 @@ func TestStartReturnsScopedTokenAndPublishesSessionStarted(t *testing.T) {
 	}
 	if publisher.envelope.EventType != events.EventTypeSessionStarted {
 		t.Fatalf("published event = %q", publisher.envelope.EventType)
-	}
-	if publisher.sessionID != response.SessionID {
-		t.Errorf("partition key = %q, want session ID %q", publisher.sessionID, response.SessionID)
 	}
 	var payload events.SessionStarted
 	if err := publisher.envelope.Decode(&payload); err != nil {
