@@ -20,7 +20,7 @@ import (
 
 const (
 	ScopeCandidateWorkspace = "candidate:workspace"
-	SessionEventsTopic      = events.TopicSessionEvents
+	SessionEventsTopic      = events.SessionEventsTopic
 )
 
 var ErrInvalidInvite = errors.New("invalid, expired, or already-used invite")

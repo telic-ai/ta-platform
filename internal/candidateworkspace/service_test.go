@@ -68,7 +68,7 @@ func TestStartReturnsScopedTokenAndRecordsSessionStarted(t *testing.T) {
 	}
 
 	message := store.message
-	if message.Topic != events.TopicSessionEvents || string(message.Key) != response.SessionID {
+	if message.Topic != events.SessionEventsTopic || string(message.Key) != response.SessionID {
 		t.Fatalf("outbox message routed to %q key %q", message.Topic, message.Key)
 	}
 	if message.CompanyID != store.result.Session.CompanyID || message.EventType != events.EventTypeSessionStarted {

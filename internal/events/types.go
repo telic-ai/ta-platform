@@ -2,8 +2,12 @@ package events
 
 import "time"
 
-// Event type constants form the platform's event catalog. Kafka topic names
-// are expected to follow the pattern "ta.<domain>.<event-type>".
+// SessionEventsTopic is the Event Catalog topic for session lifecycle events.
+// Records are keyed by session_id so one session's events stay ordered on one
+// partition.
+const SessionEventsTopic = "session-events"
+
+// Event type constants form the platform's event catalog.
 const (
 	EventTypeJobPosted             EventType = "job.posted"
 	EventTypeJobClosed             EventType = "job.closed"
@@ -15,10 +19,6 @@ const (
 	EventTypeInterviewCompleted    EventType = "interview.completed"
 	EventTypeSessionStarted        EventType = "session.started"
 )
-
-// TopicSessionEvents carries Candidate Workspace session events, keyed by
-// session_id so one session's events stay ordered on one partition.
-const TopicSessionEvents = "session-events"
 
 // SessionStarted is emitted after an invite has been exchanged for an
 // Active Candidate Workspace session. Tokens are never included in events.

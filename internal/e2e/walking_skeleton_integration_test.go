@@ -80,7 +80,7 @@ func TestSessionStartedEndToEnd(t *testing.T) {
 	}
 
 	// A unique topic isolates this run from older records on session-events.
-	topic := events.TopicSessionEvents + ".e2e." + uuid.NewString()[:8]
+	topic := events.SessionEventsTopic + ".e2e." + uuid.NewString()[:8]
 	kafkaClient := kafka.New(cfg.KafkaBrokers)
 	if err := kafkaClient.CreateTopic(ctx, topic, 6, 1); err != nil {
 		t.Fatalf("create topic: %v", err)
@@ -95,7 +95,7 @@ func TestSessionStartedEndToEnd(t *testing.T) {
 	startSession(t, candidateAPI.URL, "invite-one", http.StatusUnauthorized)
 
 	var pending int
-	if err := pool.QueryRow(ctx, `SELECT count(*) FROM event_outbox WHERE topic = $1`, events.TopicSessionEvents).Scan(&pending); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM event_outbox WHERE topic = $1`, events.SessionEventsTopic).Scan(&pending); err != nil {
 		t.Fatalf("count outbox: %v", err)
 	}
 	if pending != 2 {

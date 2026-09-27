@@ -63,7 +63,7 @@ func message(t *testing.T, sessionID string, sequence int64) Message {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := NewMessage(events.TopicSessionEvents, sessionID, envelope)
+	m, err := NewMessage(events.SessionEventsTopic, sessionID, envelope)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestRelayRetriesUntilDeliveredInOrder(t *testing.T) {
 		t.Fatalf("written = %d, want 5", len(writer.written))
 	}
 	for i, written := range writer.written {
-		if written.Topic != events.TopicSessionEvents || string(written.Key) != "session-1" {
+		if written.Topic != events.SessionEventsTopic || string(written.Key) != "session-1" {
 			t.Errorf("message %d routed to %q key %q", i, written.Topic, written.Key)
 		}
 		if len(written.Headers) != 1 || string(written.Headers[0].Value) != string(events.EventTypeSessionStarted) {
@@ -124,7 +124,7 @@ func TestNewMessageValidates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := NewMessage(events.TopicSessionEvents, "s", envelope); err == nil {
+	if _, err := NewMessage(events.SessionEventsTopic, "s", envelope); err == nil {
 		t.Error("NewMessage accepted a non-UUID company_id")
 	}
 	envelope.CompanyID = uuid.NewString()

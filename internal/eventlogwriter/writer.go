@@ -14,7 +14,7 @@ import (
 )
 
 // DefaultTopic is the topic Candidate Workspace publishes session events to.
-const DefaultTopic = events.TopicSessionEvents
+const DefaultTopic = events.SessionEventsTopic
 
 type MessageReader interface {
 	FetchMessage(context.Context) (kafkago.Message, error)

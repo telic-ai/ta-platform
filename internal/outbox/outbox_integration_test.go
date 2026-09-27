@@ -38,7 +38,7 @@ func TestSessionEventsStayOnOnePartitionInOrder(t *testing.T) {
 		t.Fatalf("seed company: %v", err)
 	}
 
-	topic := events.TopicSessionEvents + ".outbox." + uuid.NewString()[:8]
+	topic := events.SessionEventsTopic + ".outbox." + uuid.NewString()[:8]
 	client := kafka.New(cfg.KafkaBrokers)
 	if err := client.CreateTopic(ctx, topic, 6, 1); err != nil {
 		t.Fatalf("create topic: %v", err)
