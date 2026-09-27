@@ -1,0 +1,48 @@
+# One pod per execution (ADR-005). The runner fills in the name, image,
+# command, limits and deadline per execution.
+apiVersion: v1
+kind: Pod
+metadata:
+  generateName: ta-sbx-
+  namespace: execution-sandbox
+  labels:
+    ta-platform.io/sandbox: "true"
+spec:
+  runtimeClassName: gvisor
+  restartPolicy: Never
+  activeDeadlineSeconds: 10
+  automountServiceAccountToken: false
+  enableServiceLinks: false
+  hostNetwork: false
+  hostPID: false
+  hostIPC: false
+  dnsPolicy: None
+  dnsConfig: {}
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: run
+      image: python:3.12-alpine
+      imagePullPolicy: IfNotPresent
+      command: ["python3", "-I", "-B", "main.py"]
+      workingDir: /workspace
+      securityContext:
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: [ALL]
+      resources:
+        requests: {cpu: "1", memory: 256Mi}
+        limits: {cpu: "1", memory: 256Mi, ephemeral-storage: 64Mi}
+      volumeMounts:
+        - {name: workspace, mountPath: /workspace, readOnly: true}
+        - {name: tmp, mountPath: /tmp}
+  volumes:
+    - name: workspace
+      emptyDir: {sizeLimit: 8Mi}
+    - name: tmp
+      emptyDir: {medium: Memory, sizeLimit: 64Mi}

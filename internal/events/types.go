@@ -19,6 +19,7 @@ const (
 	EventTypeInterviewCompleted    EventType = "interview.completed"
 	EventTypeSessionStarted        EventType = "session.started"
 	EventTypeAIResponseCompleted   EventType = "ai.response.completed"
+	EventTypePromptSubmitted       EventType = "prompt.submitted"
 )
 
 // SessionStarted is emitted after an invite has been exchanged for an
@@ -33,6 +34,21 @@ type SessionStarted struct {
 
 func (SessionStarted) EventType() EventType { return EventTypeSessionStarted }
 func (SessionStarted) SchemaVersion() int   { return 1 }
+
+// PromptSubmitted records a candidate prompt before it is sent to the AI
+// Gateway. CompletionSequenceNumber is reserved for the prompt's
+// ai.response.completed, so the pair is ordered by sequence number.
+type PromptSubmitted struct {
+	SessionID                string `json:"session_id"`
+	InterviewID              string `json:"interview_id"`
+	PromptID                 string `json:"prompt_id"`
+	Prompt                   string `json:"prompt"`
+	HistoryTurns             int    `json:"history_turns"`
+	CompletionSequenceNumber int64  `json:"completion_sequence_number"`
+}
+
+func (PromptSubmitted) EventType() EventType { return EventTypePromptSubmitted }
+func (PromptSubmitted) SchemaVersion() int   { return 1 }
 
 // AI response statuses. ai.response.completed is emitted for every
 // completion attempt, whatever its outcome.

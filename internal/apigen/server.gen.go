@@ -11,12 +11,31 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for ChatMessageRole.
+const (
+	Assistant ChatMessageRole = "assistant"
+	User      ChatMessageRole = "user"
+)
+
+// Valid indicates whether the value is a known member of the ChatMessageRole enum.
+func (e ChatMessageRole) Valid() bool {
+	switch e {
+	case Assistant:
+		return true
+	case User:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for JobStatus.
 const (
@@ -30,6 +49,33 @@ func (e JobStatus) Valid() bool {
 	case Closed:
 		return true
 	case Open:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PromptDoneStatus.
+const (
+	PromptDoneStatusCancelled PromptDoneStatus = "cancelled"
+	PromptDoneStatusCompleted PromptDoneStatus = "completed"
+	PromptDoneStatusError     PromptDoneStatus = "error"
+	PromptDoneStatusRefused   PromptDoneStatus = "refused"
+	PromptDoneStatusTruncated PromptDoneStatus = "truncated"
+)
+
+// Valid indicates whether the value is a known member of the PromptDoneStatus enum.
+func (e PromptDoneStatus) Valid() bool {
+	switch e {
+	case PromptDoneStatusCancelled:
+		return true
+	case PromptDoneStatusCompleted:
+		return true
+	case PromptDoneStatusError:
+		return true
+	case PromptDoneStatusRefused:
+		return true
+	case PromptDoneStatusTruncated:
 		return true
 	default:
 		return false
@@ -81,6 +127,15 @@ type Candidate struct {
 	Id       string              `json:"id"`
 }
 
+// ChatMessage defines model for ChatMessage.
+type ChatMessage struct {
+	Content string          `json:"content"`
+	Role    ChatMessageRole `json:"role"`
+}
+
+// ChatMessageRole defines model for ChatMessage.Role.
+type ChatMessageRole string
+
 // CreateJobRequest defines model for CreateJobRequest.
 type CreateJobRequest struct {
 	Location *string `json:"location,omitempty"`
@@ -105,6 +160,34 @@ type Job struct {
 
 // JobStatus defines model for Job.Status.
 type JobStatus string
+
+// PromptAccepted Data of the `prompt` SSE event.
+type PromptAccepted struct {
+	PromptId       openapi_types.UUID `json:"promptId"`
+	SequenceNumber int64              `json:"sequenceNumber"`
+}
+
+// PromptDelta Data of a `delta` SSE event.
+type PromptDelta struct {
+	Text string `json:"text"`
+}
+
+// PromptDone Data of the final `done` SSE event.
+type PromptDone struct {
+	ErrorCode  *string          `json:"errorCode,omitempty"`
+	Status     PromptDoneStatus `json:"status"`
+	StopReason *string          `json:"stopReason,omitempty"`
+}
+
+// PromptDoneStatus defines model for PromptDone.Status.
+type PromptDoneStatus string
+
+// PromptRequest defines model for PromptRequest.
+type PromptRequest struct {
+	// History Earlier turns of this conversation, oldest first.
+	History *[]ChatMessage `json:"history,omitempty"`
+	Prompt  string         `json:"prompt"`
+}
 
 // StageChangeRequest defines model for StageChangeRequest.
 type StageChangeRequest struct {
@@ -169,6 +252,9 @@ type ChangeCandidateStageJSONRequestBody = StageChangeRequest
 // CreateJobJSONRequestBody defines body for CreateJob for application/json ContentType.
 type CreateJobJSONRequestBody = CreateJobRequest
 
+// SubmitPromptJSONRequestBody defines body for SubmitPrompt for application/json ContentType.
+type SubmitPromptJSONRequestBody = PromptRequest
+
 // StartSessionJSONRequestBody defines body for StartSession for application/json ContentType.
 type StartSessionJSONRequestBody = StartSessionRequest
 
@@ -195,6 +281,9 @@ type ServerInterface interface {
 	// GetInterviewTimeline Replay an interview's events after an optional sequence cursor.
 	// (GET /interviews/{id}/timeline)
 	GetInterviewTimeline(w http.ResponseWriter, r *http.Request, id InterviewId, params GetInterviewTimelineParams)
+	// SubmitPrompt Send a prompt to the AI assistant and stream its answer.
+	// (POST /session/prompt)
+	SubmitPrompt(w http.ResponseWriter, r *http.Request)
 	// StartSession Exchange a one-time invite for a scoped Candidate Workspace session token.
 	// (POST /session/start)
 	StartSession(w http.ResponseWriter, r *http.Request)
@@ -359,6 +448,20 @@ func (siw *ServerInterfaceWrapper) GetInterviewTimeline(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// SubmitPrompt operation middleware
+func (siw *ServerInterfaceWrapper) SubmitPrompt(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SubmitPrompt(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // StartSession operation middleware
 func (siw *ServerInterfaceWrapper) StartSession(w http.ResponseWriter, r *http.Request) {
 
@@ -495,6 +598,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/interviews/{id}/timeline", wrapper.GetInterviewTimeline)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/session/start", wrapper.StartSession)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/session/prompt", wrapper.SubmitPrompt)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/candidate/me", wrapper.GetCurrentCandidate)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/candidate/applications", wrapper.ListMyApplications)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/admin/jobs", wrapper.ListJobs)
@@ -849,6 +953,130 @@ func (response GetInterviewTimelinedefaultJSONResponse) VisitGetInterviewTimelin
 	return err
 }
 
+type SubmitPromptRequestObject struct {
+	Body *SubmitPromptJSONRequestBody
+}
+
+type SubmitPromptResponseObject interface {
+	VisitSubmitPromptResponse(w http.ResponseWriter) error
+}
+
+type SubmitPrompt200TexteventStreamResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response SubmitPrompt200TexteventStreamResponse) VisitSubmitPromptResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		// If w doesn't support flushing, fall back to io.Copy.
+		_, err := io.Copy(w, response.Body)
+		return err
+	}
+	// text/event-stream messages are typically small; use a
+	// modest buffer and flush after each chunk so clients see
+	// events immediately instead of waiting on OS buffering.
+	buf := make([]byte, 4096)
+	for {
+		n, err := response.Body.Read(buf)
+		if n > 0 {
+			if _, writeErr := w.Write(buf[:n]); writeErr != nil {
+				return writeErr
+			}
+			flusher.Flush()
+		}
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+	}
+}
+
+type SubmitPrompt400JSONResponse struct{ ErrorJSONResponse }
+
+func (response SubmitPrompt400JSONResponse) VisitSubmitPromptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitPrompt401JSONResponse Error
+
+func (response SubmitPrompt401JSONResponse) VisitSubmitPromptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitPrompt409JSONResponse Error
+
+func (response SubmitPrompt409JSONResponse) VisitSubmitPromptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitPrompt503JSONResponse Error
+
+func (response SubmitPrompt503JSONResponse) VisitSubmitPromptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SubmitPromptdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response SubmitPromptdefaultJSONResponse) VisitSubmitPromptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type StartSessionRequestObject struct {
 	Body *StartSessionJSONRequestBody
 }
@@ -949,6 +1177,9 @@ type StrictServerInterface interface {
 	// GetInterviewTimeline Replay an interview's events after an optional sequence cursor.
 	// (GET /interviews/{id}/timeline)
 	GetInterviewTimeline(ctx context.Context, request GetInterviewTimelineRequestObject) (GetInterviewTimelineResponseObject, error)
+	// SubmitPrompt Send a prompt to the AI assistant and stream its answer.
+	// (POST /session/prompt)
+	SubmitPrompt(ctx context.Context, request SubmitPromptRequestObject) (SubmitPromptResponseObject, error)
 	// StartSession Exchange a one-time invite for a scoped Candidate Workspace session token.
 	// (POST /session/start)
 	StartSession(ctx context.Context, request StartSessionRequestObject) (StartSessionResponseObject, error)
@@ -1175,6 +1406,37 @@ func (sh *strictHandler) GetInterviewTimeline(w http.ResponseWriter, r *http.Req
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetInterviewTimelineResponseObject); ok {
 		if err := validResponse.VisitGetInterviewTimelineResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SubmitPrompt operation middleware
+func (sh *strictHandler) SubmitPrompt(w http.ResponseWriter, r *http.Request) {
+	var request SubmitPromptRequestObject
+
+	var body SubmitPromptJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SubmitPrompt(ctx, request.(SubmitPromptRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SubmitPrompt")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SubmitPromptResponseObject); ok {
+		if err := validResponse.VisitSubmitPromptResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

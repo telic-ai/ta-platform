@@ -50,15 +50,25 @@ func RequireActiveSession(finder auth.SessionFinder, next http.Handler) http.Han
 type HTTPHandler struct {
 	service *Service
 	finder  auth.SessionFinder
+	prompts *PromptService
 }
 
 func NewHTTPHandler(service *Service, finder auth.SessionFinder) *HTTPHandler {
 	return &HTTPHandler{service: service, finder: finder}
 }
 
+// WithPrompts enables POST /session/prompt.
+func (h *HTTPHandler) WithPrompts(prompts *PromptService) *HTTPHandler {
+	h.prompts = prompts
+	return h
+}
+
 func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /session/start", h.startSession)
+	if h.prompts != nil {
+		mux.Handle("POST /session/prompt", RequireActiveSession(h.finder, http.HandlerFunc(h.submitPrompt)))
+	}
 	// Candidate Workspace endpoints are introduced incrementally. Mounting the
 	// guard at the workspace boundary makes every current and future request
 	// subject to the state machine.
