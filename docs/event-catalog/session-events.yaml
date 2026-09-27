@@ -21,6 +21,8 @@ channels:
         $ref: '#/components/messages/ExecutionRequested'
       executionCompleted:
         $ref: '#/components/messages/ExecutionCompleted'
+      codeDiff:
+        $ref: '#/components/messages/CodeDiff'
 operations:
   publishSessionEvent:
     action: send
@@ -138,6 +140,31 @@ components:
               stdout_truncated: {type: boolean}
               stderr_truncated: {type: boolean}
               error_code: {type: string, description: Set when status is error.}
+    CodeDiff:
+      name: code.diff
+      contentType: application/json
+      description: >
+        One accepted, debounced edit. Diffs whose client_sequence is not
+        greater than the session's last accepted one are dropped and never
+        produce this event. origin feeds the manual-vs-AI ratio.
+      payload:
+        type: object
+        properties:
+          event_type: {type: string, const: code.diff}
+          schema_version: {type: integer, const: 1}
+          payload:
+            type: object
+            required: [session_id, interview_id, client_sequence, origin, path, patch, lines_added, lines_removed]
+            properties:
+              session_id: {type: string}
+              interview_id: {type: string}
+              client_sequence: {type: integer}
+              origin: {type: string, enum: [manual, ai_applied]}
+              prompt_id: {type: string, description: The applied prompt, for ai_applied diffs.}
+              path: {type: string}
+              patch: {type: string, description: Single-file unified diff.}
+              lines_added: {type: integer}
+              lines_removed: {type: integer}
   schemas:
     Envelope:
       type: object

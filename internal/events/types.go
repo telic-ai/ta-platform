@@ -22,6 +22,7 @@ const (
 	EventTypePromptSubmitted       EventType = "prompt.submitted"
 	EventTypeExecutionRequested    EventType = "execution.requested"
 	EventTypeExecutionCompleted    EventType = "execution.completed"
+	EventTypeCodeDiff              EventType = "code.diff"
 )
 
 // SessionStarted is emitted after an invite has been exchanged for an
@@ -96,6 +97,30 @@ type ExecutionCompleted struct {
 
 func (ExecutionCompleted) EventType() EventType { return EventTypeExecutionCompleted }
 func (ExecutionCompleted) SchemaVersion() int   { return 1 }
+
+// Code diff origins: typed by the candidate, or an AI suggestion the
+// candidate applied. Their ratio is a scoring signal.
+const (
+	DiffOriginManual    = "manual"
+	DiffOriginAIApplied = "ai_applied"
+)
+
+// CodeDiff records one accepted edit to a workspace file as a unified diff.
+// ClientSequence is the workspace client's per-session edit counter.
+type CodeDiff struct {
+	SessionID      string `json:"session_id"`
+	InterviewID    string `json:"interview_id"`
+	ClientSequence int64  `json:"client_sequence"`
+	Origin         string `json:"origin"`
+	PromptID       string `json:"prompt_id,omitempty"`
+	Path           string `json:"path"`
+	Patch          string `json:"patch"`
+	LinesAdded     int    `json:"lines_added"`
+	LinesRemoved   int    `json:"lines_removed"`
+}
+
+func (CodeDiff) EventType() EventType { return EventTypeCodeDiff }
+func (CodeDiff) SchemaVersion() int   { return 1 }
 
 // AI response statuses. ai.response.completed is emitted for every
 // completion attempt, whatever its outcome.

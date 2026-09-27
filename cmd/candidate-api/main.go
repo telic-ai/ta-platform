@@ -73,7 +73,8 @@ func main() {
 		candidateworkspace.NewHTTPExecutor(cfg.SandboxURL, nil),
 		runLock{redis.NewLocker(redisClient, "candidate-workspace:")},
 		candidateworkspace.RunConfig{Timeout: cfg.RunTimeout, Logger: logger})
-	handler := candidateworkspace.NewHTTPHandler(service, store).WithPrompts(prompts).WithRuns(runs)
+	diffs := candidateworkspace.NewDiffService(postgres.NewEventStore(db.Pool()))
+	handler := candidateworkspace.NewHTTPHandler(service, store).WithPrompts(prompts).WithRuns(runs).WithDiffs(diffs)
 	// No WriteTimeout: prompt answers stream for as long as the model runs.
 	server := &http.Server{Addr: cfg.HTTPAddr, Handler: handler.Routes(), ReadHeaderTimeout: 5 * time.Second}
 
