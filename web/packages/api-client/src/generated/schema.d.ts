@@ -38,6 +38,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/session/prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a prompt to the AI assistant and stream its answer.
+         * @description Records prompt.submitted (allocating its sequence number) before any side effect, then relays the AI Gateway's answer as Server-Sent Events: one `prompt` event (PromptAccepted), zero or more `delta` events (PromptDelta), and exactly one `done` event (PromptDone). Closing the connection cancels the upstream model call.
+         */
+        post: operations["submitPrompt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/candidate/me": {
         parameters: {
             query?: never;
@@ -161,6 +181,34 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
+        ChatMessage: {
+            /** @enum {string} */
+            role: "user" | "assistant";
+            content: string;
+        };
+        PromptRequest: {
+            prompt: string;
+            /** @description Earlier turns of this conversation, oldest first. */
+            history?: components["schemas"]["ChatMessage"][];
+        };
+        /** @description Data of the `prompt` SSE event. */
+        PromptAccepted: {
+            /** Format: uuid */
+            promptId: string;
+            /** Format: int64 */
+            sequenceNumber: number;
+        };
+        /** @description Data of a `delta` SSE event. */
+        PromptDelta: {
+            text: string;
+        };
+        /** @description Data of the final `done` SSE event. */
+        PromptDone: {
+            /** @enum {string} */
+            status: "completed" | "truncated" | "refused" | "error" | "cancelled";
+            stopReason?: string;
+            errorCode?: string;
+        };
         Error: {
             message: string;
             code?: string;
@@ -270,6 +318,35 @@ export interface operations {
             };
             400: components["responses"]["Error"];
             401: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    submitPrompt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromptRequest"];
+            };
+        };
+        responses: {
+            /** @description An event stream of PromptAccepted, PromptDelta and PromptDone events. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            503: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };

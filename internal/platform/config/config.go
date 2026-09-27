@@ -22,6 +22,11 @@ type Config struct {
 	S3SecretKey   string
 	HTTPAddr      string
 	SessionTTL    time.Duration
+	// AIGatewayURL is where the Candidate Workspace reaches the AI Gateway.
+	AIGatewayURL string
+	// AIModel is the model the workspace requests; empty means the
+	// gateway's default.
+	AIModel string
 }
 
 // Load reads configuration for serviceName from the environment, falling
@@ -45,6 +50,8 @@ func Load(serviceName string) (Config, error) {
 		S3SecretKey:   getenv("S3_SECRET_KEY", "minioadmin"),
 		HTTPAddr:      getenv("HTTP_ADDR", ":8081"),
 		SessionTTL:    sessionTTL,
+		AIGatewayURL:  getenv("AI_GATEWAY_URL", "http://localhost:8090"),
+		AIModel:       getenv("AI_MODEL", ""),
 	}, nil
 }
 

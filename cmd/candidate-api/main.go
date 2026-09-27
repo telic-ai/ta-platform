@@ -56,7 +56,12 @@ func main() {
 
 	store := postgres.NewSessionStore(db.Pool())
 	service := candidateworkspace.NewService(store, cfg.SessionTTL)
-	server := &http.Server{Addr: cfg.HTTPAddr, Handler: candidateworkspace.NewHTTPHandler(service, store).Routes(), ReadHeaderTimeout: 5 * time.Second}
+	prompts := candidateworkspace.NewPromptService(postgres.NewEventStore(db.Pool()),
+		candidateworkspace.NewHTTPGateway(cfg.AIGatewayURL, nil),
+		candidateworkspace.PromptConfig{Model: cfg.AIModel, System: candidateSystemPrompt})
+	handler := candidateworkspace.NewHTTPHandler(service, store).WithPrompts(prompts)
+	// No WriteTimeout: prompt answers stream for as long as the model runs.
+	server := &http.Server{Addr: cfg.HTTPAddr, Handler: handler.Routes(), ReadHeaderTimeout: 5 * time.Second}
 
 	go func() {
 		<-ctx.Done()
@@ -70,3 +75,9 @@ func main() {
 		os.Exit(1)
 	}
 }
+
+// candidateSystemPrompt frames the assistant a candidate uses during a
+// coding interview.
+const candidateSystemPrompt = "You are the coding assistant inside a candidate's technical interview " +
+	"workspace. Help the candidate with their task the way a strong pair programmer would: explain " +
+	"your reasoning, propose code the candidate can apply, and keep answers focused on their code."

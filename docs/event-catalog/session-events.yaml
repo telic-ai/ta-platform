@@ -13,6 +13,8 @@ channels:
     messages:
       sessionStarted:
         $ref: '#/components/messages/SessionStarted'
+      promptSubmitted:
+        $ref: '#/components/messages/PromptSubmitted'
       aiResponseCompleted:
         $ref: '#/components/messages/AIResponseCompleted'
 operations:
@@ -29,6 +31,30 @@ components:
         location: $message.payload#/payload/session_id
       payload:
         $ref: '#/components/schemas/Envelope'
+    PromptSubmitted:
+      name: prompt.submitted
+      contentType: application/json
+      description: >
+        Written to the outbox by the Candidate Workspace before the prompt is
+        sent to the AI Gateway. Two sequence numbers are allocated together:
+        this event's, and completion_sequence_number for the resulting
+        ai.response.completed.
+      payload:
+        type: object
+        required: [event_id, event_type, schema_version, company_id, sequence_number, occurred_at, payload]
+        properties:
+          event_type: {type: string, const: prompt.submitted}
+          schema_version: {type: integer, const: 1}
+          payload:
+            type: object
+            required: [session_id, interview_id, prompt_id, prompt, history_turns, completion_sequence_number]
+            properties:
+              session_id: {type: string}
+              interview_id: {type: string}
+              prompt_id: {type: string}
+              prompt: {type: string}
+              history_turns: {type: integer, description: Earlier conversation turns sent with the prompt.}
+              completion_sequence_number: {type: integer, description: Reserved for this prompt's ai.response.completed.}
     AIResponseCompleted:
       name: ai.response.completed
       contentType: application/json

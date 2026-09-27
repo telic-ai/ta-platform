@@ -46,15 +46,21 @@ func main() {
 		os.Exit(1)
 	}
 
+	// The gateway listens on :8090 locally (AI_GATEWAY_URL's default) so it
+	// can run beside candidate-api; HTTP_ADDR still overrides it.
+	addr := cfg.HTTPAddr
+	if os.Getenv("HTTP_ADDR") == "" {
+		addr = ":8090"
+	}
 	// No WriteTimeout: completions stream for as long as the model runs.
-	server := &http.Server{Addr: cfg.HTTPAddr, Handler: aigateway.NewHTTPHandler(gateway).Routes(), ReadHeaderTimeout: 5 * time.Second}
+	server := &http.Server{Addr: addr, Handler: aigateway.NewHTTPHandler(gateway).Routes(), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		_ = server.Shutdown(shutdownCtx)
 	}()
-	logger.Info("starting service", slog.String("service", cfg.ServiceName), slog.String("address", cfg.HTTPAddr))
+	logger.Info("starting service", slog.String("service", cfg.ServiceName), slog.String("address", addr))
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Error("serve AI gateway", slog.Any("error", err))
 		os.Exit(1)
