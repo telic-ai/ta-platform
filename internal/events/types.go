@@ -2,8 +2,10 @@ package events
 
 import "time"
 
-// Event type constants form the platform's event catalog. Kafka topic names
-// are expected to follow the pattern "ta.<domain>.<event-type>".
+// SessionEventsTopic is the Event Catalog topic for session lifecycle events.
+const SessionEventsTopic = "session-events"
+
+// Event type constants form the platform's event catalog.
 const (
 	EventTypeJobPosted             EventType = "job.posted"
 	EventTypeJobClosed             EventType = "job.closed"

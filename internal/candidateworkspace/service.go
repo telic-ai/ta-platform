@@ -19,7 +19,7 @@ import (
 
 const (
 	ScopeCandidateWorkspace = "candidate:workspace"
-	SessionEventsTopic      = "session-events"
+	SessionEventsTopic      = events.SessionEventsTopic
 )
 
 var (
