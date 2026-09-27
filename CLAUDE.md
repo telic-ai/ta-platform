@@ -59,7 +59,11 @@ design.
   (`internal/apigen/...` via oapi-codegen) and the TS client in
   `web/packages/api-client` (via openapi-typescript).
 - `web/` — pnpm workspace: `apps/company`, `apps/candidate`,
-  `packages/ui`, `packages/api-client`.
+  `packages/ui`, `packages/api-client`. `apps/candidate` is a Vite + React
+  app that talks only to the Candidate Workspace (`pnpm dev` proxies
+  `/session` to candidate-api). `packages/api-client` holds the typed
+  workspace client, POST-SSE parsing and the diff debouncer; its
+  `test/fixtures/patches.json` is shared with a Go contract test.
 - `deploy/docker-compose.yml` — local dependency stack (postgres, kafka in
   KRaft mode, redis, typesense, clickhouse, minio).
 
@@ -71,10 +75,11 @@ design.
 - `make migrate-up` / `make migrate-down` — apply all pending Postgres
   migrations or roll back the latest version.
 - `make web-build` — `pnpm -r build` in `web/`
+- `make web-test` — `pnpm -r test` (Vitest) in `web/`
 - `make generate` — regenerate API stubs/clients from `api/openapi.yaml`
 - `make up` / `make down` — start/stop the local dependency stack
 - `make smoke` — verify the stack is reachable (`scripts/smoke.sh`)
-- `make check` — build + test + web-build (the CI gate)
+- `make check` — build + test + web-build + web-test (the CI gate)
 
 ## Conventions
 
