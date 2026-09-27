@@ -77,18 +77,28 @@ type Invite struct {
 	CreatedAt   time.Time
 }
 
-// Session is an authenticated user session within a company.
+// Session is an authenticated session within a company. Exactly one of
+// UserID (a company member) and InterviewID (a candidate in the Candidate
+// Workspace) is set; candidates are not company users.
 type Session struct {
 	ID          uuid.UUID
 	CompanyID   uuid.UUID
-	InterviewID uuid.UUID
-	UserID      uuid.UUID
+	UserID      *uuid.UUID
+	InterviewID *uuid.UUID
 	State       SessionState
 	TokenHash   []byte
 	ExpiresAt   time.Time
 	RevokedAt   *time.Time
 	CreatedAt   time.Time
 	LastSeenAt  *time.Time
+}
+
+// IsCandidate reports whether s is a Candidate Workspace session.
+func (s Session) IsCandidate() bool { return s.InterviewID != nil }
+
+// IsActive reports whether s is in the Active state and still usable at now.
+func (s Session) IsActive(now time.Time) bool {
+	return s.State == SessionStateActive && s.RevokedAt == nil && s.ExpiresAt.After(now)
 }
 
 // SessionState is the lifecycle state of a Candidate Workspace session.

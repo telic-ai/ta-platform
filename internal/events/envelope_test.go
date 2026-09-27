@@ -109,7 +109,7 @@ func TestEachEventTypeRoundTrips(t *testing.T) {
 		CandidateHired{CandidateID: "cand_1"},
 		InterviewScheduled{InterviewID: "iv_1"},
 		InterviewCompleted{InterviewID: "iv_1", Outcome: "pass"},
-		SessionStarted{SessionID: "session_1", UserID: "user_1", InviteID: "invite_1"},
+		SessionStarted{SessionID: "session_1", InterviewID: "iv_1", InviteID: "invite_1"},
 	}
 
 	for _, p := range payloads {

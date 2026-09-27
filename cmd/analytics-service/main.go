@@ -13,6 +13,7 @@ import (
 	"github.com/telic-ai/ta-platform/internal/platform/logging"
 	"github.com/telic-ai/ta-platform/internal/replay"
 	"github.com/telic-ai/ta-platform/internal/store/clickhouse"
+	"github.com/telic-ai/ta-platform/internal/store/postgres"
 )
 
 func main() {
@@ -33,7 +34,15 @@ func main() {
 	}
 	defer clickhouseClient.Close()
 
-	handler := replay.NewHTTPHandler(replay.NewClickHouseStore(clickhouseClient.Conn()), replay.HeaderTenantResolver{})
+	db, err := postgres.New(ctx, cfg.PostgresDSN)
+	if err != nil {
+		logger.Error("connect postgres", slog.Any("error", err))
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	tenants := replay.SessionTenantResolver{Sessions: postgres.NewSessionStore(db.Pool())}
+	handler := replay.NewHTTPHandler(replay.NewClickHouseStore(clickhouseClient.Conn()), tenants)
 	server := &http.Server{Addr: cfg.HTTPAddr, Handler: handler.Routes(), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()

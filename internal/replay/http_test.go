@@ -3,6 +3,7 @@ package replay
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,6 +11,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/telic-ai/ta-platform/internal/auth"
+	"github.com/telic-ai/ta-platform/internal/domain"
 )
 
 type memoryStore struct {
@@ -88,7 +91,7 @@ func TestTimelineBlocksCrossTenantRead(t *testing.T) {
 
 func TestTimelineValidatesIdentityAndCursor(t *testing.T) {
 	store := &memoryStore{}
-	unauthenticated := NewHTTPHandler(store, HeaderTenantResolver{}).Routes()
+	unauthenticated := NewHTTPHandler(store, SessionTenantResolver{Sessions: sessionFinder{err: auth.ErrSessionNotFound}}).Routes()
 	request := httptest.NewRequest(http.MethodGet, "/interviews/"+uuid.NewString()+"/timeline", nil)
 	response := httptest.NewRecorder()
 	unauthenticated.ServeHTTP(response, request)
@@ -115,5 +118,67 @@ func TestTimelineQueryScopesAndOrdersInClickHouse(t *testing.T) {
 		if !strings.Contains(timelineQuery, required) {
 			t.Errorf("timeline query missing %q", required)
 		}
+	}
+}
+
+type sessionFinder struct {
+	session domain.Session
+	err     error
+}
+
+func (f sessionFinder) FindSessionByTokenHash(context.Context, []byte) (domain.Session, error) {
+	return f.session, f.err
+}
+
+func TestSessionTenantResolver(t *testing.T) {
+	companyID, userID, interviewID := uuid.New(), uuid.New(), uuid.New()
+	member := domain.Session{
+		CompanyID: companyID, UserID: &userID,
+		State: domain.SessionStateActive, ExpiresAt: time.Now().Add(time.Hour),
+	}
+	candidate := member
+	candidate.UserID, candidate.InterviewID = nil, &interviewID
+	revoked := member
+	revoked.State = domain.SessionStateRevoked
+	expired := member
+	expired.ExpiresAt = time.Now().Add(-time.Minute)
+
+	tests := []struct {
+		name    string
+		header  string
+		finder  sessionFinder
+		want    uuid.UUID
+		wantErr error
+	}{
+		{"active member", "Bearer member-token", sessionFinder{session: member}, companyID, nil},
+		{"missing token", "", sessionFinder{session: member}, uuid.Nil, ErrUnauthenticated},
+		{"unknown token", "Bearer unknown", sessionFinder{err: auth.ErrSessionNotFound}, uuid.Nil, ErrUnauthenticated},
+		{"candidate token", "Bearer candidate-token", sessionFinder{session: candidate}, uuid.Nil, ErrUnauthenticated},
+		{"revoked session", "Bearer member-token", sessionFinder{session: revoked}, uuid.Nil, ErrUnauthenticated},
+		{"expired session", "Bearer member-token", sessionFinder{session: expired}, uuid.Nil, ErrUnauthenticated},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, "/", nil)
+			if test.header != "" {
+				request.Header.Set("Authorization", test.header)
+			}
+			request.Header.Set("X-Company-ID", uuid.NewString()) // must be ignored
+			got, err := SessionTenantResolver{Sessions: test.finder}.CompanyID(request)
+			if got != test.want || !errors.Is(err, test.wantErr) {
+				t.Fatalf("CompanyID = %s, %v; want %s, %v", got, err, test.want, test.wantErr)
+			}
+		})
+	}
+}
+
+func TestTimelineReportsIdentityStoreOutageAs503(t *testing.T) {
+	resolver := SessionTenantResolver{Sessions: sessionFinder{err: errors.New("postgres down")}}
+	request := httptest.NewRequest(http.MethodGet, "/interviews/"+uuid.NewString()+"/timeline", nil)
+	request.Header.Set("Authorization", "Bearer member-token")
+	response := httptest.NewRecorder()
+	NewHTTPHandler(&memoryStore{}, resolver).Routes().ServeHTTP(response, request)
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503", response.Code)
 	}
 }

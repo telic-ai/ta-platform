@@ -25,12 +25,11 @@ func New(brokers string) *Client {
 }
 
 // WriterBatchTimeout bounds how long a synchronous write waits for a batch to
-// fill. kafka-go's 1s default would cap EventPublisher at about one write per
-// second, since it writes whatever it has queued and waits for the ack.
+// fill. kafka-go's 1s default would add up to a second to every write.
 const WriterBatchTimeout = 5 * time.Millisecond
 
-// Writer returns a durable, key-partitioned writer for topic. EventPublisher
-// owns asynchronous queueing and bounds the in-memory buffer.
+// Writer returns a durable, key-partitioned writer for topic. With an empty
+// topic, each message must name its own (as the outbox relay does).
 func (c *Client) Writer(topic string) *kafkago.Writer {
 	return &kafkago.Writer{
 		Addr:         kafkago.TCP(c.brokers...),

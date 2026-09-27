@@ -68,21 +68,19 @@ func TestMigrationsAndTenantIsolation(t *testing.T) {
 	assertSessionStateColumn(t, ctx, pool, schema)
 	assertColumns(t, ctx, pool, schema, map[string]string{
 		"invites": "interview_id", "sessions": "interview_id", "interviews": "last_sequence_number",
+		"event_outbox": "envelope",
 	})
 	assertCrossTenantQueryReturnsNothing(t, ctx, pool)
+	assertSessionHasExactlyOnePrincipal(t, ctx, pool)
 
-	// Roll back the candidate-interview and session-state migrations, then
-	// the core schema migration.
-	if err := runner.Down(ctx); err != nil {
-		t.Fatalf("migrate candidate-interview down: %v", err)
+	// Roll back every migration, newest first.
+	const migrationCount = 5
+	for version := migrationCount; version > 0; version-- {
+		if err := runner.Down(ctx); err != nil {
+			t.Fatalf("migrate down from version %d: %v", version, err)
+		}
 	}
-	if err := runner.Down(ctx); err != nil {
-		t.Fatalf("migrate down: %v", err)
-	}
-	if err := runner.Down(ctx); err != nil {
-		t.Fatalf("migrate core down: %v", err)
-	}
-	for _, table := range []string{"companies", "users", "tasks", "interviews", "invites", "sessions"} {
+	for _, table := range []string{"companies", "users", "tasks", "interviews", "invites", "sessions", "event_outbox"} {
 		var exists bool
 		qualified := fmt.Sprintf("%s.%s", schema, table)
 		if err := pool.QueryRow(ctx, `SELECT to_regclass($1) IS NOT NULL`, qualified).Scan(&exists); err != nil {
@@ -224,5 +222,45 @@ func assertCrossTenantQueryReturnsNothing(t *testing.T, ctx context.Context, poo
 	}
 	if _, err := store.Get(ctx, companyB, interviewID); !errors.Is(err, pgx.ErrNoRows) {
 		t.Fatalf("cross-tenant query error = %v, want pgx.ErrNoRows", err)
+	}
+}
+
+// A session belongs to a company member or to a candidate's interview, never
+// both and never neither.
+func assertSessionHasExactlyOnePrincipal(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
+	t.Helper()
+	companyID, userID, interviewID := uuid.New(), uuid.New(), uuid.New()
+	if _, err := pool.Exec(ctx, `INSERT INTO companies (id, name, slug) VALUES ($1, 'Principal', $2)`,
+		companyID, "principal-"+companyID.String()); err != nil {
+		t.Fatalf("seed company: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO users (company_id, id, email, role) VALUES ($1, $2, 'member@example.test', 'recruiter')`,
+		companyID, userID); err != nil {
+		t.Fatalf("seed user: %v", err)
+	}
+	if err := NewInterviewStore(pool).Create(ctx, domain.Interview{
+		ID: interviewID, CompanyID: companyID, CandidateName: "Candidate",
+		CandidateEmail: "candidate@example.test", Status: "scheduled",
+	}); err != nil {
+		t.Fatalf("seed interview: %v", err)
+	}
+	insert := func(user, interview *uuid.UUID) error {
+		_, err := pool.Exec(ctx, `
+			INSERT INTO sessions (company_id, id, user_id, interview_id, token_hash, expires_at)
+			VALUES ($1, $2, $3, $4, $5, now() + interval '1 hour')`,
+			companyID, uuid.New(), user, interview, []byte(uuid.NewString()))
+		return err
+	}
+	if err := insert(&userID, nil); err != nil {
+		t.Errorf("member session rejected: %v", err)
+	}
+	if err := insert(nil, &interviewID); err != nil {
+		t.Errorf("candidate session rejected: %v", err)
+	}
+	if err := insert(&userID, &interviewID); err == nil {
+		t.Error("session with both user_id and interview_id was accepted")
+	}
+	if err := insert(nil, nil); err == nil {
+		t.Error("session with neither user_id nor interview_id was accepted")
 	}
 }

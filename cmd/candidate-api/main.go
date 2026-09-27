@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/telic-ai/ta-platform/internal/candidateworkspace"
-	"github.com/telic-ai/ta-platform/internal/events"
+	"github.com/telic-ai/ta-platform/internal/outbox"
 	"github.com/telic-ai/ta-platform/internal/platform/config"
 	"github.com/telic-ai/ta-platform/internal/platform/logging"
 	"github.com/telic-ai/ta-platform/internal/store/kafka"
@@ -34,22 +34,28 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
-	kafkaClient := kafka.New(cfg.KafkaBrokers)
-	writer := kafkaClient.Writer(candidateworkspace.SessionEventsTopic)
+	// Session events are committed to the Postgres outbox with the session
+	// itself; the relay delivers them to Kafka, retrying until it succeeds.
+	writer := kafka.New(cfg.KafkaBrokers).Writer("")
 	defer writer.Close()
-	store := postgres.NewSessionStore(db.Pool())
-	publisher := kafka.NewEventPublisherWithConfig(writer, kafka.DefaultPublisherBufferSize, func(envelope events.Envelope, err error) {
-		if err != nil {
-			logger.Error("deliver event",
-				slog.String("event_id", envelope.EventID),
-				slog.String("event_type", string(envelope.EventType)),
-				slog.String("company_id", envelope.CompanyID),
-				slog.Int64("sequence_number", envelope.SequenceNumber),
-				slog.Any("error", err))
-		}
+	relay, err := outbox.NewRelay(postgres.NewOutboxStore(db.Pool()), writer, outbox.Config{
+		BatchSize: 100,
+		Interval:  100 * time.Millisecond,
+		OnError:   func(err error) { logger.Error("relay outbox", slog.Any("error", err)) },
 	})
-	defer publisher.Close()
-	service := candidateworkspace.NewService(store, publisher, cfg.SessionTTL)
+	if err != nil {
+		logger.Error("create outbox relay", slog.Any("error", err))
+		os.Exit(1)
+	}
+	relayDone := make(chan struct{})
+	go func() {
+		defer close(relayDone)
+		_ = relay.Run(ctx)
+	}()
+	defer func() { <-relayDone }()
+
+	store := postgres.NewSessionStore(db.Pool())
+	service := candidateworkspace.NewService(store, cfg.SessionTTL)
 	server := &http.Server{Addr: cfg.HTTPAddr, Handler: candidateworkspace.NewHTTPHandler(service, store).Routes(), ReadHeaderTimeout: 5 * time.Second}
 
 	go func() {

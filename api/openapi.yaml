@@ -16,7 +16,7 @@ paths:
       summary: Replay an interview's events after an optional sequence cursor.
       tags: [replay]
       security:
-        - companyIdentity: []
+        - companySession: []
       parameters:
         - $ref: "#/components/parameters/InterviewId"
         - name: after_seq
@@ -202,11 +202,13 @@ components:
       type: http
       scheme: bearer
       bearerFormat: opaque
-    companyIdentity:
-      type: apiKey
-      in: header
-      name: X-Company-ID
-      description: Trusted company identity injected by the authenticated gateway.
+    companySession:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: >
+        A company member's session token. The request is scoped to that
+        member's company; Candidate Workspace tokens are rejected.
 
   parameters:
     InterviewId:

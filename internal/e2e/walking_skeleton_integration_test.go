@@ -15,24 +15,24 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	kafkago "github.com/segmentio/kafka-go"
+	"github.com/telic-ai/ta-platform/internal/auth"
 	"github.com/telic-ai/ta-platform/internal/candidateworkspace"
 	"github.com/telic-ai/ta-platform/internal/domain"
 	"github.com/telic-ai/ta-platform/internal/eventlogwriter"
 	"github.com/telic-ai/ta-platform/internal/events"
+	"github.com/telic-ai/ta-platform/internal/outbox"
 	"github.com/telic-ai/ta-platform/internal/platform/config"
 	"github.com/telic-ai/ta-platform/internal/replay"
 	"github.com/telic-ai/ta-platform/internal/store/clickhouse"
 	"github.com/telic-ai/ta-platform/internal/store/kafka"
 	"github.com/telic-ai/ta-platform/internal/store/postgres"
-	"github.com/telic-ai/ta-platform/internal/store/postgres/migrations"
+	"github.com/telic-ai/ta-platform/internal/testutil/pgtest"
 )
 
 // TestSessionStartedEndToEnd drives Phase 1's walking skeleton:
-// invite exchange -> session.started on Kafka -> event-log-writer ->
-// ClickHouse -> tenant-scoped replay timeline.
+// invite exchange -> session.started in the Postgres outbox -> relay ->
+// Kafka -> event-log-writer -> ClickHouse -> tenant-scoped replay timeline.
 func TestSessionStartedEndToEnd(t *testing.T) {
 	cfg, err := config.Load("walking-skeleton-e2e-test")
 	if err != nil {
@@ -41,7 +41,7 @@ func TestSessionStartedEndToEnd(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	pool := migratedSchema(t, ctx, cfg.PostgresDSN)
+	pool := pgtest.MigratedSchema(t, ctx, cfg.PostgresDSN)
 	companyA, companyB, interviewID := uuid.New(), uuid.New(), uuid.New()
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO companies (id, name, slug) VALUES ($1, 'Tenant A', $2), ($3, 'Tenant B', $4)`,
@@ -59,8 +59,23 @@ func TestSessionStartedEndToEnd(t *testing.T) {
 			INSERT INTO invites (company_id, id, interview_id, email, role, token_hash, expires_at)
 			VALUES ($1, $2, $3, $4, 'candidate', $5, now() + interval '1 hour')`,
 			companyA, uuid.New(), interviewID, fmt.Sprintf("candidate-%d@example.test", i),
-			candidateworkspace.HashToken(token)); err != nil {
+			auth.HashToken(token)); err != nil {
 			t.Fatalf("seed invite: %v", err)
+		}
+	}
+	// Company members of each tenant, each with an Active session for replay.
+	for company, token := range map[uuid.UUID]string{companyA: "member-a", companyB: "member-b"} {
+		userID := uuid.New()
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO users (company_id, id, email, role) VALUES ($1, $2, 'recruiter@example.test', 'recruiter')`,
+			company, userID); err != nil {
+			t.Fatalf("seed member: %v", err)
+		}
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO sessions (company_id, id, user_id, token_hash, expires_at)
+			VALUES ($1, $2, $3, $4, now() + interval '1 hour')`,
+			company, uuid.New(), userID, auth.HashToken(token)); err != nil {
+			t.Fatalf("seed member session: %v", err)
 		}
 	}
 
@@ -70,30 +85,52 @@ func TestSessionStartedEndToEnd(t *testing.T) {
 	if err := kafkaClient.CreateTopic(ctx, topic, 6, 1); err != nil {
 		t.Fatalf("create topic: %v", err)
 	}
-	producer := kafkaClient.Writer(topic)
-	defer producer.Close()
-	deliveries := make(chan error, 2)
-	publisher := kafka.NewEventPublisherWithConfig(producer, 16, func(_ events.Envelope, err error) { deliveries <- err })
-	defer publisher.Close()
-
 	sessions := postgres.NewSessionStore(pool)
 	candidateAPI := httptest.NewServer(candidateworkspace.NewHTTPHandler(
-		candidateworkspace.NewService(sessions, publisher, time.Hour), sessions).Routes())
+		candidateworkspace.NewService(sessions, time.Hour), sessions).Routes())
 	defer candidateAPI.Close()
 
 	first := startSession(t, candidateAPI.URL, "invite-one", http.StatusOK)
 	second := startSession(t, candidateAPI.URL, "invite-two", http.StatusOK)
 	startSession(t, candidateAPI.URL, "invite-one", http.StatusUnauthorized)
-	for range 2 {
-		select {
-		case err := <-deliveries:
-			if err != nil {
-				t.Fatalf("deliver session.started: %v", err)
-			}
-		case <-ctx.Done():
-			t.Fatal("session.started was not delivered to Kafka")
-		}
+
+	var pending int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM event_outbox WHERE topic = $1`, events.TopicSessionEvents).Scan(&pending); err != nil {
+		t.Fatalf("count outbox: %v", err)
 	}
+	if pending != 2 {
+		t.Fatalf("outbox holds %d session events, want 2 committed with their sessions", pending)
+	}
+	// Point the committed events at this run's topic before relaying them.
+	if _, err := pool.Exec(ctx, `UPDATE event_outbox SET topic = $1`, topic); err != nil {
+		t.Fatalf("retarget outbox: %v", err)
+	}
+	var candidateUsers int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM users WHERE email LIKE 'candidate-%'`).Scan(&candidateUsers); err != nil {
+		t.Fatalf("count users: %v", err)
+	}
+	if candidateUsers != 0 {
+		t.Errorf("invite exchange created %d company users for candidates", candidateUsers)
+	}
+
+	producer := kafkaClient.Writer("")
+	defer producer.Close()
+	relay, err := outbox.NewRelay(postgres.NewOutboxStore(pool), producer, outbox.Config{
+		BatchSize: 10, Interval: 20 * time.Millisecond,
+		OnError: func(err error) { t.Errorf("relay: %v", err) },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	relayCtx, stopRelay := context.WithCancel(ctx)
+	relayDone := make(chan error, 1)
+	go func() { relayDone <- relay.Run(relayCtx) }()
+	defer func() {
+		stopRelay()
+		if err := <-relayDone; !errors.Is(err, context.Canceled) {
+			t.Errorf("relay: %v", err)
+		}
+	}()
 
 	// An Active session passes the workspace guard; a completed one gets 409.
 	if status := workspaceStatus(t, candidateAPI.URL, first.AccessToken); status != http.StatusNotFound {
@@ -138,13 +175,13 @@ func TestSessionStartedEndToEnd(t *testing.T) {
 	}()
 
 	replayAPI := httptest.NewServer(replay.NewHTTPHandler(
-		replay.NewClickHouseStore(clickhouseClient.Conn()), replay.HeaderTenantResolver{}).Routes())
+		replay.NewClickHouseStore(clickhouseClient.Conn()), replay.SessionTenantResolver{Sessions: sessions}).Routes())
 	defer replayAPI.Close()
 
 	var timeline []replay.Event
 	deadline := time.Now().Add(20 * time.Second)
 	for {
-		timeline = readTimeline(t, replayAPI.URL, companyA, interviewID, "")
+		timeline = readTimeline(t, replayAPI.URL, "member-a", interviewID, "")
 		if len(timeline) == 2 {
 			break
 		}
@@ -172,47 +209,15 @@ func TestSessionStartedEndToEnd(t *testing.T) {
 	if !slices.Equal(sessionIDs, []string{first.SessionID, second.SessionID}) {
 		t.Errorf("session order = %v, want [%s %s]", sessionIDs, first.SessionID, second.SessionID)
 	}
-	if after := readTimeline(t, replayAPI.URL, companyA, interviewID, "1"); len(after) != 1 || after[0].SequenceNumber != 2 {
+	if after := readTimeline(t, replayAPI.URL, "member-a", interviewID, "1"); len(after) != 1 || after[0].SequenceNumber != 2 {
 		t.Errorf("after_seq=1 timeline = %+v, want only sequence 2", after)
 	}
-	if other := readTimeline(t, replayAPI.URL, companyB, interviewID, ""); len(other) != 0 {
+	if other := readTimeline(t, replayAPI.URL, "member-b", interviewID, ""); len(other) != 0 {
 		t.Errorf("cross-tenant timeline returned %d events, want 0", len(other))
 	}
-}
-
-func migratedSchema(t *testing.T, ctx context.Context, dsn string) *pgxpool.Pool {
-	t.Helper()
-	admin, err := postgres.New(ctx, dsn)
-	if err != nil {
-		t.Fatalf("connect Postgres: %v", err)
+	if status, _ := getTimeline(t, replayAPI.URL, second.AccessToken, interviewID, ""); status != http.StatusUnauthorized {
+		t.Errorf("candidate token on replay status = %d, want 401", status)
 	}
-	t.Cleanup(admin.Close)
-	schema := pgx.Identifier{"e2e_" + uuid.NewString()[:8]}.Sanitize()
-	if _, err := admin.Pool().Exec(ctx, "CREATE SCHEMA "+schema); err != nil {
-		t.Fatalf("create schema: %v", err)
-	}
-	t.Cleanup(func() {
-		cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if _, err := admin.Pool().Exec(cleanupCtx, "DROP SCHEMA "+schema+" CASCADE"); err != nil {
-			t.Errorf("drop schema: %v", err)
-		}
-	})
-
-	poolConfig, err := pgxpool.ParseConfig(dsn)
-	if err != nil {
-		t.Fatalf("parse DSN: %v", err)
-	}
-	poolConfig.ConnConfig.RuntimeParams["search_path"] = schema
-	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
-	if err != nil {
-		t.Fatalf("connect schema pool: %v", err)
-	}
-	t.Cleanup(pool.Close)
-	if err := migrations.New(pool).Up(ctx); err != nil {
-		t.Fatalf("migrate up: %v", err)
-	}
-	return pool
 }
 
 func startSession(t *testing.T, baseURL, inviteToken string, wantStatus int) candidateworkspace.StartResponse {
@@ -250,21 +255,30 @@ func workspaceStatus(t *testing.T, baseURL, token string) int {
 	return response.StatusCode
 }
 
-func readTimeline(t *testing.T, baseURL string, companyID, interviewID uuid.UUID, afterSeq string) []replay.Event {
+func readTimeline(t *testing.T, baseURL, token string, interviewID uuid.UUID, afterSeq string) []replay.Event {
+	t.Helper()
+	status, events := getTimeline(t, baseURL, token, interviewID, afterSeq)
+	if status != http.StatusOK {
+		t.Fatalf("GET timeline status = %d", status)
+	}
+	return events
+}
+
+func getTimeline(t *testing.T, baseURL, token string, interviewID uuid.UUID, afterSeq string) (int, []replay.Event) {
 	t.Helper()
 	url := baseURL + "/interviews/" + interviewID.String() + "/timeline"
 	if afterSeq != "" {
 		url += "?after_seq=" + afterSeq
 	}
 	request, _ := http.NewRequest(http.MethodGet, url, nil)
-	request.Header.Set("X-Company-ID", companyID.String())
+	request.Header.Set("Authorization", "Bearer "+token)
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatalf("GET timeline: %v", err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		t.Fatalf("GET timeline status = %d", response.StatusCode)
+		return response.StatusCode, nil
 	}
 	var body struct {
 		Events []replay.Event `json:"events"`
@@ -272,5 +286,5 @@ func readTimeline(t *testing.T, baseURL string, companyID, interviewID uuid.UUID
 	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
 		t.Fatalf("decode timeline: %v", err)
 	}
-	return body.Events
+	return response.StatusCode, body.Events
 }

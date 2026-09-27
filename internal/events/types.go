@@ -25,7 +25,6 @@ const TopicSessionEvents = "session-events"
 type SessionStarted struct {
 	SessionID   string    `json:"session_id"`
 	InterviewID string    `json:"interview_id"`
-	UserID      string    `json:"user_id"`
 	InviteID    string    `json:"invite_id"`
 	Scope       string    `json:"scope"`
 	ExpiresAt   time.Time `json:"expires_at"`

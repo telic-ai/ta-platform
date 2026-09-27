@@ -100,7 +100,7 @@ func TestWriterSkipsAndCommitsUndecodableMessages(t *testing.T) {
 
 func TestDecodeAcceptsSessionStarted(t *testing.T) {
 	envelope, err := events.New("company-1", 1, events.SessionStarted{
-		SessionID: "session-1", InterviewID: "interview-1", UserID: "user-1",
+		SessionID: "session-1", InterviewID: "interview-1",
 	})
 	if err != nil {
 		t.Fatal(err)
