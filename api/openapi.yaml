@@ -109,6 +109,44 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  /session/run:
+    post:
+      operationId: runCode
+      summary: Run the candidate's code in the Execution Sandbox and wait for the result.
+      description: >
+        Stores a snapshot of the files, records execution.requested, runs
+        the code synchronously in the sandbox, and records
+        execution.completed. Only one run per session may be in flight; a
+        second request while one is active gets 429.
+      tags: [session]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunRequest"
+      responses:
+        "200":
+          description: The finished run. Program failures and timeouts are results, not errors.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunResult"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+        "503":
+          $ref: "#/components/responses/Error"
+        default:
+          $ref: "#/components/responses/Error"
+
   /candidate/me:
     get:
       operationId: getCurrentCandidate
@@ -399,6 +437,50 @@ components:
           type: string
         errorCode:
           type: string
+
+    RunRequest:
+      type: object
+      required: [language, entrypoint, files]
+      additionalProperties: false
+      properties:
+        language:
+          type: string
+          enum: [python, javascript, shell]
+        entrypoint:
+          type: string
+          description: The file in `files` to run.
+        files:
+          type: object
+          description: Workspace snapshot, keyed by relative path.
+          additionalProperties:
+            type: string
+        stdin:
+          type: string
+          maxLength: 65536
+
+    RunResult:
+      type: object
+      required: [executionId, status, exitCode, stdout, stderr, stdoutTruncated, stderrTruncated, durationMs]
+      properties:
+        executionId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [succeeded, failed, timed_out, oom_killed, error]
+        exitCode:
+          type: integer
+        stdout:
+          type: string
+        stderr:
+          type: string
+        stdoutTruncated:
+          type: boolean
+        stderrTruncated:
+          type: boolean
+        durationMs:
+          type: integer
+          format: int64
 
     Error:
       type: object

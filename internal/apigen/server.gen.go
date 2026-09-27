@@ -82,6 +82,54 @@ func (e PromptDoneStatus) Valid() bool {
 	}
 }
 
+// Defines values for RunRequestLanguage.
+const (
+	Javascript RunRequestLanguage = "javascript"
+	Python     RunRequestLanguage = "python"
+	Shell      RunRequestLanguage = "shell"
+)
+
+// Valid indicates whether the value is a known member of the RunRequestLanguage enum.
+func (e RunRequestLanguage) Valid() bool {
+	switch e {
+	case Javascript:
+		return true
+	case Python:
+		return true
+	case Shell:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunResultStatus.
+const (
+	RunResultStatusError     RunResultStatus = "error"
+	RunResultStatusFailed    RunResultStatus = "failed"
+	RunResultStatusOomKilled RunResultStatus = "oom_killed"
+	RunResultStatusSucceeded RunResultStatus = "succeeded"
+	RunResultStatusTimedOut  RunResultStatus = "timed_out"
+)
+
+// Valid indicates whether the value is a known member of the RunResultStatus enum.
+func (e RunResultStatus) Valid() bool {
+	switch e {
+	case RunResultStatusError:
+		return true
+	case RunResultStatusFailed:
+		return true
+	case RunResultStatusOomKilled:
+		return true
+	case RunResultStatusSucceeded:
+		return true
+	case RunResultStatusTimedOut:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for StartSessionResponseScope.
 const (
 	CandidateWorkspace StartSessionResponseScope = "candidate:workspace"
@@ -189,6 +237,35 @@ type PromptRequest struct {
 	Prompt  string         `json:"prompt"`
 }
 
+// RunRequest defines model for RunRequest.
+type RunRequest struct {
+	// Entrypoint The file in `files` to run.
+	Entrypoint string `json:"entrypoint"`
+
+	// Files Workspace snapshot, keyed by relative path.
+	Files    map[string]string  `json:"files"`
+	Language RunRequestLanguage `json:"language"`
+	Stdin    *string            `json:"stdin,omitempty"`
+}
+
+// RunRequestLanguage defines model for RunRequest.Language.
+type RunRequestLanguage string
+
+// RunResult defines model for RunResult.
+type RunResult struct {
+	DurationMs      int64              `json:"durationMs"`
+	ExecutionId     openapi_types.UUID `json:"executionId"`
+	ExitCode        int                `json:"exitCode"`
+	Status          RunResultStatus    `json:"status"`
+	Stderr          string             `json:"stderr"`
+	StderrTruncated bool               `json:"stderrTruncated"`
+	Stdout          string             `json:"stdout"`
+	StdoutTruncated bool               `json:"stdoutTruncated"`
+}
+
+// RunResultStatus defines model for RunResult.Status.
+type RunResultStatus string
+
 // StageChangeRequest defines model for StageChangeRequest.
 type StageChangeRequest struct {
 	ApplicationId string `json:"applicationId"`
@@ -255,6 +332,9 @@ type CreateJobJSONRequestBody = CreateJobRequest
 // SubmitPromptJSONRequestBody defines body for SubmitPrompt for application/json ContentType.
 type SubmitPromptJSONRequestBody = PromptRequest
 
+// RunCodeJSONRequestBody defines body for RunCode for application/json ContentType.
+type RunCodeJSONRequestBody = RunRequest
+
 // StartSessionJSONRequestBody defines body for StartSession for application/json ContentType.
 type StartSessionJSONRequestBody = StartSessionRequest
 
@@ -284,6 +364,9 @@ type ServerInterface interface {
 	// SubmitPrompt Send a prompt to the AI assistant and stream its answer.
 	// (POST /session/prompt)
 	SubmitPrompt(w http.ResponseWriter, r *http.Request)
+	// RunCode Run the candidate's code in the Execution Sandbox and wait for the result.
+	// (POST /session/run)
+	RunCode(w http.ResponseWriter, r *http.Request)
 	// StartSession Exchange a one-time invite for a scoped Candidate Workspace session token.
 	// (POST /session/start)
 	StartSession(w http.ResponseWriter, r *http.Request)
@@ -462,6 +545,20 @@ func (siw *ServerInterfaceWrapper) SubmitPrompt(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// RunCode operation middleware
+func (siw *ServerInterfaceWrapper) RunCode(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunCode(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // StartSession operation middleware
 func (siw *ServerInterfaceWrapper) StartSession(w http.ResponseWriter, r *http.Request) {
 
@@ -599,6 +696,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/interviews/{id}/timeline", wrapper.GetInterviewTimeline)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/session/start", wrapper.StartSession)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/session/prompt", wrapper.SubmitPrompt)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/session/run", wrapper.RunCode)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/candidate/me", wrapper.GetCurrentCandidate)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/candidate/applications", wrapper.ListMyApplications)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/admin/jobs", wrapper.ListJobs)
@@ -1077,6 +1175,115 @@ func (response SubmitPromptdefaultJSONResponse) VisitSubmitPromptResponse(w http
 	return err
 }
 
+type RunCodeRequestObject struct {
+	Body *RunCodeJSONRequestBody
+}
+
+type RunCodeResponseObject interface {
+	VisitRunCodeResponse(w http.ResponseWriter) error
+}
+
+type RunCode200JSONResponse RunResult
+
+func (response RunCode200JSONResponse) VisitRunCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunCode400JSONResponse struct{ ErrorJSONResponse }
+
+func (response RunCode400JSONResponse) VisitRunCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunCode401JSONResponse Error
+
+func (response RunCode401JSONResponse) VisitRunCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunCode409JSONResponse Error
+
+func (response RunCode409JSONResponse) VisitRunCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunCode429JSONResponse Error
+
+func (response RunCode429JSONResponse) VisitRunCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunCode503JSONResponse Error
+
+func (response RunCode503JSONResponse) VisitRunCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunCodedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response RunCodedefaultJSONResponse) VisitRunCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type StartSessionRequestObject struct {
 	Body *StartSessionJSONRequestBody
 }
@@ -1180,6 +1387,9 @@ type StrictServerInterface interface {
 	// SubmitPrompt Send a prompt to the AI assistant and stream its answer.
 	// (POST /session/prompt)
 	SubmitPrompt(ctx context.Context, request SubmitPromptRequestObject) (SubmitPromptResponseObject, error)
+	// RunCode Run the candidate's code in the Execution Sandbox and wait for the result.
+	// (POST /session/run)
+	RunCode(ctx context.Context, request RunCodeRequestObject) (RunCodeResponseObject, error)
 	// StartSession Exchange a one-time invite for a scoped Candidate Workspace session token.
 	// (POST /session/start)
 	StartSession(ctx context.Context, request StartSessionRequestObject) (StartSessionResponseObject, error)
@@ -1437,6 +1647,37 @@ func (sh *strictHandler) SubmitPrompt(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(SubmitPromptResponseObject); ok {
 		if err := validResponse.VisitSubmitPromptResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RunCode operation middleware
+func (sh *strictHandler) RunCode(w http.ResponseWriter, r *http.Request) {
+	var request RunCodeRequestObject
+
+	var body RunCodeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RunCode(ctx, request.(RunCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RunCodeResponseObject); ok {
+		if err := validResponse.VisitRunCodeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

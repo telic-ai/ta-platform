@@ -20,6 +20,8 @@ const (
 	EventTypeSessionStarted        EventType = "session.started"
 	EventTypeAIResponseCompleted   EventType = "ai.response.completed"
 	EventTypePromptSubmitted       EventType = "prompt.submitted"
+	EventTypeExecutionRequested    EventType = "execution.requested"
+	EventTypeExecutionCompleted    EventType = "execution.completed"
 )
 
 // SessionStarted is emitted after an invite has been exchanged for an
@@ -49,6 +51,51 @@ type PromptSubmitted struct {
 
 func (PromptSubmitted) EventType() EventType { return EventTypePromptSubmitted }
 func (PromptSubmitted) SchemaVersion() int   { return 1 }
+
+// ExecutionRequested records a run after its snapshot is stored and before
+// the sandbox is called.
+type ExecutionRequested struct {
+	SessionID     string `json:"session_id"`
+	InterviewID   string `json:"interview_id"`
+	ExecutionID   string `json:"execution_id"`
+	Language      string `json:"language"`
+	Entrypoint    string `json:"entrypoint"`
+	SnapshotKey   string `json:"snapshot_key"`
+	FileCount     int    `json:"file_count"`
+	SnapshotBytes int    `json:"snapshot_bytes"`
+}
+
+func (ExecutionRequested) EventType() EventType { return EventTypeExecutionRequested }
+func (ExecutionRequested) SchemaVersion() int   { return 1 }
+
+// Execution statuses. error means the sandbox itself failed; the others
+// describe the candidate's program.
+const (
+	ExecutionStatusSucceeded = "succeeded"
+	ExecutionStatusFailed    = "failed"
+	ExecutionStatusTimedOut  = "timed_out"
+	ExecutionStatusOOMKilled = "oom_killed"
+	ExecutionStatusError     = "error"
+)
+
+// ExecutionCompleted records a run's outcome. Output is capped; the
+// truncated flags say whether anything was cut.
+type ExecutionCompleted struct {
+	SessionID       string `json:"session_id"`
+	InterviewID     string `json:"interview_id"`
+	ExecutionID     string `json:"execution_id"`
+	Status          string `json:"status"`
+	ExitCode        int    `json:"exit_code"`
+	DurationMS      int64  `json:"duration_ms"`
+	Stdout          string `json:"stdout"`
+	Stderr          string `json:"stderr"`
+	StdoutTruncated bool   `json:"stdout_truncated"`
+	StderrTruncated bool   `json:"stderr_truncated"`
+	ErrorCode       string `json:"error_code,omitempty"`
+}
+
+func (ExecutionCompleted) EventType() EventType { return EventTypeExecutionCompleted }
+func (ExecutionCompleted) SchemaVersion() int   { return 1 }
 
 // AI response statuses. ai.response.completed is emitted for every
 // completion attempt, whatever its outcome.

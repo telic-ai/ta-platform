@@ -58,6 +58,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/session/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the candidate's code in the Execution Sandbox and wait for the result.
+         * @description Stores a snapshot of the files, records execution.requested, runs the code synchronously in the sandbox, and records execution.completed. Only one run per session may be in flight; a second request while one is active gets 429.
+         */
+        post: operations["runCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/candidate/me": {
         parameters: {
             query?: never;
@@ -209,6 +229,30 @@ export interface components {
             stopReason?: string;
             errorCode?: string;
         };
+        RunRequest: {
+            /** @enum {string} */
+            language: "python" | "javascript" | "shell";
+            /** @description The file in `files` to run. */
+            entrypoint: string;
+            /** @description Workspace snapshot, keyed by relative path. */
+            files: {
+                [key: string]: string;
+            };
+            stdin?: string;
+        };
+        RunResult: {
+            /** Format: uuid */
+            executionId: string;
+            /** @enum {string} */
+            status: "succeeded" | "failed" | "timed_out" | "oom_killed" | "error";
+            exitCode: number;
+            stdout: string;
+            stderr: string;
+            stdoutTruncated: boolean;
+            stderrTruncated: boolean;
+            /** Format: int64 */
+            durationMs: number;
+        };
         Error: {
             message: string;
             code?: string;
@@ -346,6 +390,36 @@ export interface operations {
             400: components["responses"]["Error"];
             401: components["responses"]["Error"];
             409: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    runCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunRequest"];
+            };
+        };
+        responses: {
+            /** @description The finished run. Program failures and timeouts are results, not errors. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunResult"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            429: components["responses"]["Error"];
             503: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
