@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/telic-ai/ta-platform/internal/candidateworkspace"
+	"github.com/telic-ai/ta-platform/internal/events"
 	"github.com/telic-ai/ta-platform/internal/platform/config"
 	"github.com/telic-ai/ta-platform/internal/platform/logging"
 	"github.com/telic-ai/ta-platform/internal/store/kafka"
@@ -37,7 +38,16 @@ func main() {
 	writer := kafkaClient.Writer(candidateworkspace.SessionEventsTopic)
 	defer writer.Close()
 	store := postgres.NewSessionStore(db.Pool())
-	publisher := kafka.NewEventPublisher(writer)
+	publisher := kafka.NewEventPublisherWithConfig(writer, kafka.DefaultPublisherBufferSize, func(envelope events.Envelope, err error) {
+		if err != nil {
+			logger.Error("deliver event",
+				slog.String("event_id", envelope.EventID),
+				slog.String("event_type", string(envelope.EventType)),
+				slog.String("company_id", envelope.CompanyID),
+				slog.Int64("sequence_number", envelope.SequenceNumber),
+				slog.Any("error", err))
+		}
+	})
 	defer publisher.Close()
 	service := candidateworkspace.NewService(store, publisher, cfg.SessionTTL)
 	server := &http.Server{Addr: cfg.HTTPAddr, Handler: candidateworkspace.NewHTTPHandler(service, store).Routes(), ReadHeaderTimeout: 5 * time.Second}

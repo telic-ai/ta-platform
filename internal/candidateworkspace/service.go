@@ -19,7 +19,7 @@ import (
 
 const (
 	ScopeCandidateWorkspace = "candidate:workspace"
-	SessionEventsTopic      = "session-events"
+	SessionEventsTopic      = events.TopicSessionEvents
 )
 
 var (
@@ -39,6 +39,9 @@ type StartParams struct {
 type Started struct {
 	Session  domain.Session
 	InviteID uuid.UUID
+	// SequenceNumber is the interview event sequence allocated for
+	// session.started in the same transaction.
+	SequenceNumber int64
 }
 
 // Store owns durable invite and session state.
@@ -87,8 +90,9 @@ func (s *Service) Start(ctx context.Context, inviteToken string) (StartResponse,
 		return StartResponse{}, err
 	}
 
-	envelope, err := events.New(started.Session.CompanyID.String(), 1, events.SessionStarted{
-		SessionID: started.Session.ID.String(), UserID: started.Session.UserID.String(),
+	envelope, err := events.New(started.Session.CompanyID.String(), started.SequenceNumber, events.SessionStarted{
+		SessionID: started.Session.ID.String(), InterviewID: started.Session.InterviewID.String(),
+		UserID:   started.Session.UserID.String(),
 		InviteID: started.InviteID.String(), Scope: ScopeCandidateWorkspace,
 		ExpiresAt: started.Session.ExpiresAt,
 	})

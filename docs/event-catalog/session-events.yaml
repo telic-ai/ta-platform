@@ -33,13 +33,14 @@ components:
         event_type: {type: string, const: session.started}
         schema_version: {type: integer, const: 1}
         company_id: {type: string}
-        sequence_number: {type: integer, minimum: 0}
+        sequence_number: {type: integer, minimum: 1, description: Per-interview sequence allocated in Postgres (interviews.last_sequence_number).}
         occurred_at: {type: string, format: date-time}
         payload:
           type: object
-          required: [session_id, user_id, invite_id, scope, expires_at]
+          required: [session_id, interview_id, user_id, invite_id, scope, expires_at]
           properties:
             session_id: {type: string, description: Kafka record key and ordering boundary.}
+            interview_id: {type: string, description: Interview the session belongs to; the event log's partition key.}
             user_id: {type: string}
             invite_id: {type: string}
             scope: {type: string}

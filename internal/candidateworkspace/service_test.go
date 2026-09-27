@@ -35,9 +35,11 @@ func (p *recordingPublisher) Publish(_ context.Context, envelope events.Envelope
 
 func TestStartReturnsScopedTokenAndPublishesSessionStarted(t *testing.T) {
 	now := time.Date(2026, 9, 6, 12, 0, 0, 0, time.UTC)
+	interviewID := uuid.New()
 	store := &recordingStore{result: Started{
-		Session:  domain.Session{CompanyID: uuid.New(), UserID: uuid.New()},
-		InviteID: uuid.New(),
+		Session:        domain.Session{CompanyID: uuid.New(), InterviewID: interviewID, UserID: uuid.New()},
+		InviteID:       uuid.New(),
+		SequenceNumber: 4,
 	}}
 	publisher := &recordingPublisher{}
 	service := NewService(store, publisher, 2*time.Hour)
@@ -70,6 +72,12 @@ func TestStartReturnsScopedTokenAndPublishesSessionStarted(t *testing.T) {
 	}
 	if payload.SessionID != response.SessionID || payload.Scope != ScopeCandidateWorkspace {
 		t.Errorf("event payload = %+v", payload)
+	}
+	if payload.InterviewID != interviewID.String() {
+		t.Errorf("interview_id = %q, want %q", payload.InterviewID, interviewID)
+	}
+	if publisher.envelope.SequenceNumber != 4 {
+		t.Errorf("sequence_number = %d, want the store-allocated 4", publisher.envelope.SequenceNumber)
 	}
 	if bytes.Contains(publisher.envelope.Payload, []byte(response.AccessToken)) {
 		t.Error("session.started leaked the bearer token")

@@ -3,6 +3,7 @@ package kafka
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -14,7 +15,11 @@ type MessageWriter interface {
 	WriteMessages(context.Context, ...kafkago.Message) error
 }
 
-const DefaultPublisherBufferSize = 1_000
+const (
+	DefaultPublisherBufferSize = 1_000
+	// maxWriteBatch caps how many queued events one WriteMessages call carries.
+	maxWriteBatch = 100
+)
 
 type queuedEvent struct {
 	envelope events.Envelope
@@ -74,12 +79,44 @@ func (p *EventPublisher) Publish(ctx context.Context, envelope events.Envelope) 
 	}
 }
 
+// run writes everything already queued in one call, so throughput does not
+// depend on one broker round trip per event. A single worker and in-order
+// batches keep per-key ordering.
 func (p *EventPublisher) run() {
 	defer close(p.done)
+	batch := make([]queuedEvent, 0, maxWriteBatch)
+	messages := make([]kafkago.Message, 0, maxWriteBatch)
 	for event := range p.queue {
-		err := p.writer.WriteMessages(context.Background(), event.message)
+		batch = append(batch[:0], event)
+	drain:
+		for len(batch) < maxWriteBatch {
+			select {
+			case next, ok := <-p.queue:
+				if !ok {
+					break drain
+				}
+				batch = append(batch, next)
+			default:
+				break drain
+			}
+		}
+		messages = messages[:0]
+		for _, queued := range batch {
+			messages = append(messages, queued.message)
+		}
+		err := p.writer.WriteMessages(context.Background(), messages...)
 		if p.onDelivery != nil {
-			p.onDelivery(event.envelope, err)
+			var perMessage kafkago.WriteErrors
+			if !errors.As(err, &perMessage) || len(perMessage) != len(batch) {
+				perMessage = nil
+			}
+			for i, queued := range batch {
+				deliveryErr := err
+				if perMessage != nil {
+					deliveryErr = perMessage[i]
+				}
+				p.onDelivery(queued.envelope, deliveryErr)
+			}
 		}
 	}
 }

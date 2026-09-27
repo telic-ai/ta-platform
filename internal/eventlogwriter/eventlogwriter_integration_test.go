@@ -40,6 +40,9 @@ func TestRedeliveryIsVisibleAndDeduplicated(t *testing.T) {
 	unique := fmt.Sprintf("%d", time.Now().UnixNano())
 	topic := DefaultTopic + "." + unique
 	kafkaClient := storekafka.New(cfg.KafkaBrokers)
+	if err := kafkaClient.CreateTopic(ctx, topic, 1, 1); err != nil {
+		t.Fatal(err)
+	}
 	reader := kafkaClient.ReaderTopics([]string{topic}, "event-log-writer-integration-"+unique)
 	writer, err := New(reader, store, Config{BatchSize: 2, BatchWait: 100 * time.Millisecond})
 	if err != nil {
@@ -54,7 +57,7 @@ func TestRedeliveryIsVisibleAndDeduplicated(t *testing.T) {
 		t.Fatal(err)
 	}
 	value, _ := json.Marshal(envelope)
-	producer := &kafkago.Writer{Addr: kafkago.TCP(cfg.KafkaBrokers), Topic: topic, AllowAutoTopicCreation: true}
+	producer := &kafkago.Writer{Addr: kafkago.TCP(cfg.KafkaBrokers), Topic: topic, Transport: &kafkago.Transport{}}
 	defer producer.Close()
 	if err := producer.WriteMessages(ctx, kafkago.Message{Value: value}, kafkago.Message{Value: value}); err != nil {
 		t.Fatal(err)

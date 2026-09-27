@@ -16,14 +16,19 @@ const (
 	EventTypeSessionStarted        EventType = "session.started"
 )
 
+// TopicSessionEvents carries Candidate Workspace session events, keyed by
+// session_id so one session's events stay ordered on one partition.
+const TopicSessionEvents = "session-events"
+
 // SessionStarted is emitted after an invite has been exchanged for an
 // Active Candidate Workspace session. Tokens are never included in events.
 type SessionStarted struct {
-	SessionID string    `json:"session_id"`
-	UserID    string    `json:"user_id"`
-	InviteID  string    `json:"invite_id"`
-	Scope     string    `json:"scope"`
-	ExpiresAt time.Time `json:"expires_at"`
+	SessionID   string    `json:"session_id"`
+	InterviewID string    `json:"interview_id"`
+	UserID      string    `json:"user_id"`
+	InviteID    string    `json:"invite_id"`
+	Scope       string    `json:"scope"`
+	ExpiresAt   time.Time `json:"expires_at"`
 }
 
 func (SessionStarted) EventType() EventType { return EventTypeSessionStarted }

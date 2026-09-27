@@ -66,9 +66,16 @@ func TestMigrationsAndTenantIsolation(t *testing.T) {
 	assertTenantIndexes(t, ctx, pool, schema)
 	assertInterviewRetentionColumns(t, ctx, pool, schema)
 	assertSessionStateColumn(t, ctx, pool, schema)
+	assertColumns(t, ctx, pool, schema, map[string]string{
+		"invites": "interview_id", "sessions": "interview_id", "interviews": "last_sequence_number",
+	})
 	assertCrossTenantQueryReturnsNothing(t, ctx, pool)
 
-	// Roll back the session-state migration, then the core schema migration.
+	// Roll back the candidate-interview and session-state migrations, then
+	// the core schema migration.
+	if err := runner.Down(ctx); err != nil {
+		t.Fatalf("migrate candidate-interview down: %v", err)
+	}
 	if err := runner.Down(ctx); err != nil {
 		t.Fatalf("migrate down: %v", err)
 	}
@@ -102,6 +109,23 @@ func assertSessionStateColumn(t *testing.T, ctx context.Context, pool *pgxpool.P
 	}
 	if !exists {
 		t.Error("sessions.state is missing")
+	}
+}
+
+func assertColumns(t *testing.T, ctx context.Context, pool *pgxpool.Pool, schema string, columns map[string]string) {
+	t.Helper()
+	for table, column := range columns {
+		var exists bool
+		if err := pool.QueryRow(ctx, `
+			SELECT EXISTS (
+				SELECT 1 FROM information_schema.columns
+				 WHERE table_schema = $1 AND table_name = $2 AND column_name = $3
+			)`, schema, table, column).Scan(&exists); err != nil {
+			t.Fatalf("query %s.%s: %v", table, column, err)
+		}
+		if !exists {
+			t.Errorf("%s.%s is missing", table, column)
+		}
 	}
 }
 

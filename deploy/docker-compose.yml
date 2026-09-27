@@ -89,7 +89,9 @@ services:
       - "9000:9000"
     environment:
       CLICKHOUSE_USER: default
-      CLICKHOUSE_PASSWORD: ""
+      # An empty password makes the image restrict "default" to localhost,
+      # which blocks every client outside the container.
+      CLICKHOUSE_PASSWORD: local-dev
       CLICKHOUSE_DB: default
     volumes:
       - clickhouse-data:/var/lib/clickhouse
