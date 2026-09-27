@@ -46,6 +46,16 @@ design.
 - `internal/auth` — opaque bearer-token hashing and session lookup. A
   session belongs either to a company member (`user_id`) or to a candidate's
   interview (`interview_id`).
+- `internal/rbac` — resolves a company member's (company_id, user_id, role)
+  from their bearer session and holds the role → permission matrix.
+  `rbac.Middleware` authenticates; `rbac.Require` guards each route.
+- `internal/adminapi` — Admin API (`cmd/admin-api`, `:8082` locally):
+  company-scoped CRUD for company/users/interviews/tasks, tokenized invites,
+  human-only score decisions (`human_*`), policy toggles, and erasure
+  *marking* (`POST /interviews/{id}/erase` sets `erase_requested_at`, returns
+  202, deletes nothing). Postgres side is `postgres.AdminStore`; every
+  statement lives in `adminQueries` and a unit test asserts each is
+  `company_id`-scoped.
 - `internal/aigateway` — AI Gateway (`cmd/ai-gateway`): `POST /v1/complete`
   streams a model completion as SSE and always emits `ai.response.completed`.
   `internal/aigateway/byok` resolves a company's own key (BYOK): an
