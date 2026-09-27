@@ -394,3 +394,77 @@ func TestKafkaEmitterWritesKeyedEnvelope(t *testing.T) {
 		t.Errorf("value did not round-trip: %v", err)
 	}
 }
+
+func TestInvalidateEndpoint(t *testing.T) {
+	var got []string
+	handler := NewHTTPHandler(newTestGateway(t, &scriptedProvider{}, &recordingEmitter{})).
+		WithKeyInvalidation(func(companyID string) { got = append(got, companyID) })
+	server := httptest.NewServer(handler.Routes())
+	defer server.Close()
+	company := uuid.NewString()
+	for body, want := range map[string]int{
+		`{"company_id":"` + company + `"}`: http.StatusNoContent,
+		`{"company_id":"nope"}`:            http.StatusBadRequest,
+		`{"other":1}`:                      http.StatusBadRequest,
+	} {
+		response, err := http.Post(server.URL+"/v1/byok/invalidate", "application/json", strings.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		if response.StatusCode != want {
+			t.Errorf("%s: status %d, want %d", body, response.StatusCode, want)
+		}
+	}
+	if len(got) != 1 || got[0] != company {
+		t.Errorf("invalidated %v", got)
+	}
+	plain := httptest.NewServer(NewHTTPHandler(newTestGateway(t, &scriptedProvider{}, &recordingEmitter{})).Routes())
+	defer plain.Close()
+	response, _ := http.Post(plain.URL+"/v1/byok/invalidate", "application/json", strings.NewReader(`{}`))
+	response.Body.Close()
+	if response.StatusCode != http.StatusNotFound && response.StatusCode != http.StatusMethodNotAllowed {
+		t.Errorf("invalidate mounted without BYOK: %d", response.StatusCode)
+	}
+}
+
+func TestGatewayZeroesResolvedKey(t *testing.T) {
+	key := NewKey([]byte("sk-company"))
+	provider := &scriptedProvider{result: ProviderResult{FinishReason: FinishStop}}
+	gateway, _ := NewGateway(provider, &recordingEmitter{}, staticKeys{key}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	request := validRequest()
+	request.Mode = ModeBYOK
+	_ = request.Validate()
+	if _, err := gateway.Complete(context.Background(), request, func(string) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	if provider.gotKey != "sk-company" {
+		t.Errorf("provider got key %q", provider.gotKey)
+	}
+	if !key.Zeroed() {
+		t.Error("gateway did not zero the key after the call")
+	}
+}
+
+type staticKeys struct{ key *Key }
+
+func (s staticKeys) ResolveKey(context.Context, string) (*Key, error) { return s.key, nil }
+
+func TestBYOKResolverFailureIsAnErrorEvent(t *testing.T) {
+	emitter := &recordingEmitter{}
+	gateway, _ := NewGateway(&scriptedProvider{}, emitter, failingKeys{}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	request := validRequest()
+	request.Mode = ModeBYOK
+	_ = request.Validate()
+	outcome, _ := gateway.Complete(context.Background(), request, func(string) error { return nil })
+	if outcome.Status != events.AIResponseStatusError || outcome.ErrorCode != "byok_key_unavailable" {
+		t.Errorf("outcome = %+v", outcome)
+	}
+	emitter.only(t)
+}
+
+type failingKeys struct{}
+
+func (failingKeys) ResolveKey(context.Context, string) (*Key, error) {
+	return nil, errors.New("no key")
+}

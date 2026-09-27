@@ -48,6 +48,11 @@ design.
   interview (`interview_id`).
 - `internal/aigateway` — AI Gateway (`cmd/ai-gateway`): `POST /v1/complete`
   streams a model completion as SSE and always emits `ai.response.completed`.
+  `internal/aigateway/byok` resolves a company's own key (BYOK): an
+  envelope (KMS data key + AES-GCM) stored in Secrets Manager, decrypted
+  in-process into a TTL cache that zeroes keys on eviction and picks up
+  rotation on the next call. Enabled with `BYOK_ENABLED=true`;
+  `companies.ai_key_mode` selects managed or byok per company.
 - `internal/sandbox` — Execution Sandbox runners (gVisor and local Docker)
   behind one `Runner` interface. Its integration tests need a Docker engine,
   the language images pulled, and `scripts/install-gvisor.sh` for the gVisor

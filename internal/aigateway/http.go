@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/telic-ai/ta-platform/internal/sse"
 )
 
@@ -20,13 +21,27 @@ type DeltaEvent struct {
 	Text string `json:"text"`
 }
 
-type HTTPHandler struct{ gateway *Gateway }
+type HTTPHandler struct {
+	gateway    *Gateway
+	invalidate func(companyID string)
+}
 
 func NewHTTPHandler(gateway *Gateway) *HTTPHandler { return &HTTPHandler{gateway: gateway} }
+
+// WithKeyInvalidation enables POST /v1/byok/invalidate, which a key
+// rotation notification (or an operator) calls to drop a company's cached
+// BYOK key immediately.
+func (h *HTTPHandler) WithKeyInvalidation(invalidate func(companyID string)) *HTTPHandler {
+	h.invalidate = invalidate
+	return h
+}
 
 func (h *HTTPHandler) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /v1/complete", h.complete)
+	if h.invalidate != nil {
+		mux.HandleFunc("POST /v1/byok/invalidate", h.invalidateKey)
+	}
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
 	return mux
 }
@@ -58,6 +73,20 @@ func (h *HTTPHandler) complete(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	_ = stream.Send(EventDone, outcome)
+}
+
+func (h *HTTPHandler) invalidateKey(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		CompanyID string `json:"company_id"`
+	}
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&request); err != nil || uuid.Validate(request.CompanyID) != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "company_id must be a UUID")
+		return
+	}
+	h.invalidate(request.CompanyID)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {

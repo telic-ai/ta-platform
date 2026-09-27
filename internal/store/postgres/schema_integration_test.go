@@ -75,7 +75,7 @@ func TestMigrationsAndTenantIsolation(t *testing.T) {
 	assertSessionHasExactlyOnePrincipal(t, ctx, pool)
 
 	// Roll back every migration, newest first.
-	const migrationCount = 6
+	const migrationCount = 7
 	for version := migrationCount; version > 0; version-- {
 		if err := runner.Down(ctx); err != nil {
 			t.Fatalf("migrate down from version %d: %v", version, err)
