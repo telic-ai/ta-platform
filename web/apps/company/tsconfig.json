@@ -1,10 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": ["vite/client", "node"],
     "paths": {
       "@ta-platform/ui": ["../../packages/ui/src"],
       "@ta-platform/api-client": ["../../packages/api-client/src"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "test", "vite.config.ts"]
 }

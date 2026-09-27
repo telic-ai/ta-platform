@@ -10,9 +10,13 @@ import (
 	"time"
 
 	"github.com/telic-ai/ta-platform/internal/adminapi"
+	"github.com/telic-ai/ta-platform/internal/dashboard"
+	"github.com/telic-ai/ta-platform/internal/eventlogwriter"
 	"github.com/telic-ai/ta-platform/internal/platform/config"
 	"github.com/telic-ai/ta-platform/internal/platform/logging"
 	"github.com/telic-ai/ta-platform/internal/rbac"
+	"github.com/telic-ai/ta-platform/internal/replay"
+	"github.com/telic-ai/ta-platform/internal/store/clickhouse"
 	"github.com/telic-ai/ta-platform/internal/store/postgres"
 )
 
@@ -34,9 +38,32 @@ func main() {
 	}
 	defer db.Close()
 
+	clickhouseClient, err := clickhouse.New(cfg.ClickHouseDSN)
+	if err != nil {
+		logger.Error("connect clickhouse", slog.Any("error", err))
+		os.Exit(1)
+	}
+	defer func() { _ = clickhouseClient.Close() }()
+	// The dashboard views read the event log, so its table must exist first.
+	eventLog, err := eventlogwriter.NewStore(clickhouseClient.Conn())
+	if err != nil {
+		logger.Error("create event log store", slog.Any("error", err))
+		os.Exit(1)
+	}
+	views := dashboard.NewClickHouseStore(clickhouseClient.Conn())
+	if err := eventLog.EnsureSchema(ctx); err != nil {
+		logger.Error("ensure event log", slog.Any("error", err))
+		os.Exit(1)
+	}
+	if err := views.EnsureViews(ctx); err != nil {
+		logger.Error("ensure dashboard views", slog.Any("error", err))
+		os.Exit(1)
+	}
+
 	store := postgres.NewAdminStore(db.Pool())
 	resolver := rbac.Resolver{Sessions: postgres.NewSessionStore(db.Pool()), Roles: store}
 	handler := adminapi.NewHandler(store, resolver, adminapi.Config{})
+	dashboard.NewHandler(views, replay.NewClickHouseStore(clickhouseClient.Conn()), store).Mount(handler)
 
 	// The Admin API listens on :8082 locally so it can run beside
 	// candidate-api; HTTP_ADDR still overrides it.

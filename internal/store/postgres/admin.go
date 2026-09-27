@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/telic-ai/ta-platform/internal/adminapi"
+	"github.com/telic-ai/ta-platform/internal/dashboard"
 	"github.com/telic-ai/ta-platform/internal/domain"
 	"github.com/telic-ai/ta-platform/internal/livemonitor"
 	"github.com/telic-ai/ta-platform/internal/rbac"
@@ -21,8 +22,9 @@ import (
 type AdminStore struct{ pool *pgxpool.Pool }
 
 var (
-	_ adminapi.Store     = (*AdminStore)(nil)
-	_ livemonitor.Access = (*AdminStore)(nil)
+	_ adminapi.Store         = (*AdminStore)(nil)
+	_ livemonitor.Access     = (*AdminStore)(nil)
+	_ dashboard.ReplayAccess = (*AdminStore)(nil)
 )
 
 func NewAdminStore(pool *pgxpool.Pool) *AdminStore { return &AdminStore{pool: pool} }
@@ -93,9 +95,10 @@ var adminQueries = map[string]string{
 		WHERE company_id = $1 AND interview_id = $2 AND id = $3 AND $4::text LIKE 'human\_%'
 		RETURNING ` + scoreColumns,
 
-	// A missing policy row means the default (enabled); a purged interview
-	// cannot be watched.
-	"liveMonitoring": `SELECT COALESCE((SELECT enabled FROM company_policies WHERE company_id = $1 AND key = 'live_monitoring'), true)
+	// Whether policy $3 lets the company use interview $2. A missing policy
+	// row means the default (enabled); a purged interview has nothing left
+	// to watch or replay.
+	"interviewPolicy": `SELECT COALESCE((SELECT enabled FROM company_policies WHERE company_id = $1 AND key = $3), true)
 		FROM interviews WHERE company_id = $1 AND id = $2 AND purged_at IS NULL`,
 
 	"listPolicies": `SELECT key, enabled, updated_by, updated_at FROM company_policies WHERE company_id = $1 ORDER BY key`,
@@ -271,18 +274,35 @@ func (s *AdminStore) SetPolicy(ctx context.Context, companyID uuid.UUID, key str
 
 // LiveMonitoring implements livemonitor.Access.
 func (s *AdminStore) LiveMonitoring(ctx context.Context, companyID, interviewID uuid.UUID) error {
-	var enabled bool
-	err := s.pool.QueryRow(ctx, adminQueries["liveMonitoring"], companyID, interviewID).Scan(&enabled)
-	if errors.Is(err, pgx.ErrNoRows) {
+	enabled, err := s.interviewPolicy(ctx, companyID, interviewID, "live_monitoring")
+	if errors.Is(err, adminapi.ErrNotFound) {
 		return livemonitor.ErrInterviewNotFound
 	}
-	if err != nil {
-		return fmt.Errorf("check live monitoring access: %w", err)
-	}
-	if !enabled {
+	if err == nil && !enabled {
 		return livemonitor.ErrMonitoringDisabled
 	}
-	return nil
+	return err
+}
+
+// ReplayAccess implements dashboard.ReplayAccess.
+func (s *AdminStore) ReplayAccess(ctx context.Context, companyID, interviewID uuid.UUID) error {
+	enabled, err := s.interviewPolicy(ctx, companyID, interviewID, "replay")
+	if err == nil && !enabled {
+		return dashboard.ErrReplayDisabled
+	}
+	return err
+}
+
+func (s *AdminStore) interviewPolicy(ctx context.Context, companyID, interviewID uuid.UUID, key string) (bool, error) {
+	var enabled bool
+	err := s.pool.QueryRow(ctx, adminQueries["interviewPolicy"], companyID, interviewID, key).Scan(&enabled)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, adminapi.ErrNotFound
+	}
+	if err != nil {
+		return false, fmt.Errorf("check %s policy: %w", key, err)
+	}
+	return enabled, nil
 }
 
 func scanPolicy(row pgx.Row) (domain.Policy, error) {

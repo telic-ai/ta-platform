@@ -1,7 +1,8 @@
-/** One Server-Sent Event. */
+/** One Server-Sent Event. id is set only when the event carried one. */
 export interface SSEEvent {
   event: string;
   data: string;
+  id?: string;
 }
 
 /**
@@ -15,6 +16,7 @@ export async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerato
   let buffer = "";
   let event = "";
   let data: string[] = [];
+  let id: string | undefined;
   let seen = false;
   try {
     for (;;) {
@@ -25,9 +27,10 @@ export async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerato
         const line = buffer.slice(0, newline).replace(/\r$/, "");
         buffer = buffer.slice(newline + 1);
         if (line === "") {
-          if (seen) yield { event: event || "message", data: data.join("\n") };
+          if (seen) yield { event: event || "message", data: data.join("\n"), ...(id === undefined ? {} : { id }) };
           event = "";
           data = [];
+          id = undefined;
           seen = false;
           continue;
         }
@@ -41,6 +44,9 @@ export async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerato
           seen = true;
         } else if (field === "data") {
           data.push(fieldValue);
+          seen = true;
+        } else if (field === "id") {
+          id = fieldValue;
           seen = true;
         }
       }

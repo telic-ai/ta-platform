@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/telic-ai/ta-platform/internal/adminapi"
 	"github.com/telic-ai/ta-platform/internal/auth"
+	"github.com/telic-ai/ta-platform/internal/dashboard"
 	"github.com/telic-ai/ta-platform/internal/domain"
 	"github.com/telic-ai/ta-platform/internal/livemonitor"
 	"github.com/telic-ai/ta-platform/internal/platform/config"
@@ -362,5 +363,31 @@ func TestAdminStoreLiveMonitoringAccess(t *testing.T) {
 	mustExec(t, ctx, f.pool, `UPDATE interviews SET terminal_at = now(), purged_at = now() WHERE company_id = $1 AND id = $2`, f.companyB, f.interviewB)
 	if err := s.LiveMonitoring(ctx, f.companyB, f.interviewB); !errors.Is(err, livemonitor.ErrInterviewNotFound) {
 		t.Fatalf("purged access = %v", err)
+	}
+}
+
+func TestAdminStoreReplayAccess(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	f := newAdminFixture(t, ctx)
+	s := f.store
+	if err := s.ReplayAccess(ctx, f.companyA, f.interviewA); err != nil {
+		t.Fatalf("default access = %v", err)
+	}
+	if err := s.ReplayAccess(ctx, f.companyB, f.interviewA); !errors.Is(err, adminapi.ErrNotFound) {
+		t.Fatalf("cross-tenant access = %v", err)
+	}
+	// Turning live monitoring off leaves replay alone.
+	if _, err := s.SetPolicy(ctx, f.companyA, "live_monitoring", false, f.ownerA); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ReplayAccess(ctx, f.companyA, f.interviewA); err != nil {
+		t.Fatalf("replay after disabling live = %v", err)
+	}
+	if _, err := s.SetPolicy(ctx, f.companyA, "replay", false, f.ownerA); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ReplayAccess(ctx, f.companyA, f.interviewA); !errors.Is(err, dashboard.ErrReplayDisabled) {
+		t.Fatalf("disabled access = %v", err)
 	}
 }

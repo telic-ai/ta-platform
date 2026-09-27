@@ -8,3 +8,6 @@ web/**/tsconfig.tsbuildinfo
 
 .env
 .env.local
+
+# Local Redis snapshots
+*.rdb

@@ -21,16 +21,16 @@ import (
 
 // Defines values for ChatMessageRole.
 const (
-	Assistant ChatMessageRole = "assistant"
-	User      ChatMessageRole = "user"
+	ChatMessageRoleAssistant ChatMessageRole = "assistant"
+	ChatMessageRoleUser      ChatMessageRole = "user"
 )
 
 // Valid indicates whether the value is a known member of the ChatMessageRole enum.
 func (e ChatMessageRole) Valid() bool {
 	switch e {
-	case Assistant:
+	case ChatMessageRoleAssistant:
 		return true
-	case User:
+	case ChatMessageRoleUser:
 		return true
 	default:
 		return false
@@ -70,18 +70,69 @@ func (e DiffResultReason) Valid() bool {
 	}
 }
 
+// Defines values for InterviewStatus.
+const (
+	InterviewStatusCancelled  InterviewStatus = "cancelled"
+	InterviewStatusCompleted  InterviewStatus = "completed"
+	InterviewStatusInProgress InterviewStatus = "in_progress"
+	InterviewStatusScheduled  InterviewStatus = "scheduled"
+)
+
+// Valid indicates whether the value is a known member of the InterviewStatus enum.
+func (e InterviewStatus) Valid() bool {
+	switch e {
+	case InterviewStatusCancelled:
+		return true
+	case InterviewStatusCompleted:
+		return true
+	case InterviewStatusInProgress:
+		return true
+	case InterviewStatusScheduled:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JobStatus.
 const (
-	Closed JobStatus = "closed"
-	Open   JobStatus = "open"
+	JobStatusClosed JobStatus = "closed"
+	JobStatusOpen   JobStatus = "open"
 )
 
 // Valid indicates whether the value is a known member of the JobStatus enum.
 func (e JobStatus) Valid() bool {
 	switch e {
-	case Closed:
+	case JobStatusClosed:
 		return true
-	case Open:
+	case JobStatusOpen:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PolicyKey.
+const (
+	AiAssistance   PolicyKey = "ai_assistance"
+	AiScoring      PolicyKey = "ai_scoring"
+	CodeExecution  PolicyKey = "code_execution"
+	LiveMonitoring PolicyKey = "live_monitoring"
+	Replay         PolicyKey = "replay"
+)
+
+// Valid indicates whether the value is a known member of the PolicyKey enum.
+func (e PolicyKey) Valid() bool {
+	switch e {
+	case AiAssistance:
+		return true
+	case AiScoring:
+		return true
+	case CodeExecution:
+		return true
+	case LiveMonitoring:
+		return true
+	case Replay:
 		return true
 	default:
 		return false
@@ -109,6 +160,33 @@ func (e PromptDoneStatus) Valid() bool {
 	case PromptDoneStatusRefused:
 		return true
 	case PromptDoneStatusTruncated:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Role.
+const (
+	Admin       Role = "admin"
+	Interviewer Role = "interviewer"
+	Owner       Role = "owner"
+	Recruiter   Role = "recruiter"
+	Viewer      Role = "viewer"
+)
+
+// Valid indicates whether the value is a known member of the Role enum.
+func (e Role) Valid() bool {
+	switch e {
+	case Admin:
+		return true
+	case Interviewer:
+		return true
+	case Owner:
+		return true
+	case Recruiter:
+		return true
+	case Viewer:
 		return true
 	default:
 		return false
@@ -163,6 +241,51 @@ func (e RunResultStatus) Valid() bool {
 	}
 }
 
+// Defines values for ScoreDecisionRequestStatus.
+const (
+	ScoreDecisionRequestStatusHumanAdjusted ScoreDecisionRequestStatus = "human_adjusted"
+	ScoreDecisionRequestStatusHumanApproved ScoreDecisionRequestStatus = "human_approved"
+	ScoreDecisionRequestStatusHumanRejected ScoreDecisionRequestStatus = "human_rejected"
+)
+
+// Valid indicates whether the value is a known member of the ScoreDecisionRequestStatus enum.
+func (e ScoreDecisionRequestStatus) Valid() bool {
+	switch e {
+	case ScoreDecisionRequestStatusHumanAdjusted:
+		return true
+	case ScoreDecisionRequestStatusHumanApproved:
+		return true
+	case ScoreDecisionRequestStatusHumanRejected:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ScoreStatus.
+const (
+	ScoreStatusHumanAdjusted ScoreStatus = "human_adjusted"
+	ScoreStatusHumanApproved ScoreStatus = "human_approved"
+	ScoreStatusHumanRejected ScoreStatus = "human_rejected"
+	ScoreStatusProposed      ScoreStatus = "proposed"
+)
+
+// Valid indicates whether the value is a known member of the ScoreStatus enum.
+func (e ScoreStatus) Valid() bool {
+	switch e {
+	case ScoreStatusHumanAdjusted:
+		return true
+	case ScoreStatusHumanApproved:
+		return true
+	case ScoreStatusHumanRejected:
+		return true
+	case ScoreStatusProposed:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for StartSessionResponseScope.
 const (
 	CandidateWorkspace StartSessionResponseScope = "candidate:workspace"
@@ -193,6 +316,27 @@ func (e StartSessionResponseTokenType) Valid() bool {
 	}
 }
 
+// Defines values for TaskStatus.
+const (
+	TaskStatusDone       TaskStatus = "done"
+	TaskStatusInProgress TaskStatus = "in_progress"
+	TaskStatusOpen       TaskStatus = "open"
+)
+
+// Valid indicates whether the value is a known member of the TaskStatus enum.
+func (e TaskStatus) Valid() bool {
+	switch e {
+	case TaskStatusDone:
+		return true
+	case TaskStatusInProgress:
+		return true
+	case TaskStatusOpen:
+		return true
+	default:
+		return false
+	}
+}
+
 // Application defines model for Application.
 type Application struct {
 	CandidateId string `json:"candidateId"`
@@ -217,11 +361,68 @@ type ChatMessage struct {
 // ChatMessageRole defines model for ChatMessage.Role.
 type ChatMessageRole string
 
+// Company defines model for Company.
+type Company struct {
+	CreatedAt time.Time          `json:"created_at"`
+	Id        openapi_types.UUID `json:"id"`
+	Name      string             `json:"name"`
+	Slug      string             `json:"slug"`
+	UpdatedAt time.Time          `json:"updated_at"`
+}
+
+// CreateInterviewRequest defines model for CreateInterviewRequest.
+type CreateInterviewRequest struct {
+	CandidateEmail openapi_types.Email `json:"candidate_email"`
+	CandidateName  string              `json:"candidate_name"`
+	ScheduledAt    *time.Time          `json:"scheduled_at,omitempty"`
+}
+
+// CreateInviteRequest defines model for CreateInviteRequest.
+type CreateInviteRequest struct {
+	Email            openapi_types.Email `json:"email"`
+	ExpiresInSeconds *int64              `json:"expires_in_seconds,omitempty"`
+
+	// InterviewId Set for a candidate invite, which takes no role.
+	InterviewId *openapi_types.UUID `json:"interview_id,omitempty"`
+	Role        *Role               `json:"role,omitempty"`
+}
+
 // CreateJobRequest defines model for CreateJobRequest.
 type CreateJobRequest struct {
 	Location *string `json:"location,omitempty"`
 	RemoteOk *bool   `json:"remoteOk,omitempty"`
 	Title    string  `json:"title"`
+}
+
+// CreateTaskRequest defines model for CreateTaskRequest.
+type CreateTaskRequest struct {
+	AssigneeId  *openapi_types.UUID `json:"assignee_id,omitempty"`
+	Description *string             `json:"description,omitempty"`
+	DueAt       *time.Time          `json:"due_at,omitempty"`
+	InterviewId *openapi_types.UUID `json:"interview_id,omitempty"`
+	Title       string              `json:"title"`
+}
+
+// CreateUserRequest defines model for CreateUserRequest.
+type CreateUserRequest struct {
+	DisplayName *string             `json:"display_name,omitempty"`
+	Email       openapi_types.Email `json:"email"`
+	Role        Role                `json:"role"`
+}
+
+// DailyCount defines model for DailyCount.
+type DailyCount struct {
+	Day       openapi_types.Date `json:"day"`
+	EventType string             `json:"event_type"`
+	Events    int64              `json:"events"`
+}
+
+// DashboardOverview defines model for DashboardOverview.
+type DashboardOverview struct {
+	Daily  []DailyCount       `json:"daily"`
+	Days   int                `json:"days"`
+	Since  openapi_types.Date `json:"since"`
+	Totals map[string]int64   `json:"totals"`
 }
 
 // DiffRequest defines model for DiffRequest.
@@ -252,10 +453,66 @@ type DiffResult struct {
 // DiffResultReason defines model for DiffResult.Reason.
 type DiffResultReason string
 
+// EraseAccepted defines model for EraseAccepted.
+type EraseAccepted struct {
+	EraseRequestedAt time.Time          `json:"erase_requested_at"`
+	Id               openapi_types.UUID `json:"id"`
+	LegalHold        bool               `json:"legal_hold"`
+}
+
 // Error defines model for Error.
 type Error struct {
 	Code    *string `json:"code,omitempty"`
 	Message string  `json:"message"`
+}
+
+// Interview defines model for Interview.
+type Interview struct {
+	CandidateEmail   openapi_types.Email `json:"candidate_email"`
+	CandidateName    string              `json:"candidate_name"`
+	CreatedAt        time.Time           `json:"created_at"`
+	CreatedBy        *openapi_types.UUID `json:"created_by"`
+	EraseRequestedAt *time.Time          `json:"erase_requested_at"`
+	Id               openapi_types.UUID  `json:"id"`
+	LegalHold        bool                `json:"legal_hold"`
+	PurgedAt         *time.Time          `json:"purged_at"`
+	ScheduledAt      *time.Time          `json:"scheduled_at"`
+	Status           InterviewStatus     `json:"status"`
+	TerminalAt       *time.Time          `json:"terminal_at"`
+	UpdatedAt        time.Time           `json:"updated_at"`
+}
+
+// InterviewActivity defines model for InterviewActivity.
+type InterviewActivity struct {
+	AiAppliedDiffs int64              `json:"ai_applied_diffs"`
+	AiResponses    int64              `json:"ai_responses"`
+	Diffs          int64              `json:"diffs"`
+	Events         int64              `json:"events"`
+	FirstAt        time.Time          `json:"first_at"`
+	InterviewId    openapi_types.UUID `json:"interview_id"`
+	LastAt         time.Time          `json:"last_at"`
+	LinesAdded     int64              `json:"lines_added"`
+	LinesRemoved   int64              `json:"lines_removed"`
+	Prompts        int64              `json:"prompts"`
+	Runs           int64              `json:"runs"`
+	RunsSucceeded  int64              `json:"runs_succeeded"`
+}
+
+// InterviewStatus defines model for InterviewStatus.
+type InterviewStatus string
+
+// Invite defines model for Invite.
+type Invite struct {
+	Email       openapi_types.Email `json:"email"`
+	ExpiresAt   time.Time           `json:"expires_at"`
+	Id          openapi_types.UUID  `json:"id"`
+	InterviewId *openapi_types.UUID `json:"interview_id"`
+
+	// Role A member role
+	Role string `json:"role"`
+
+	// Token Returned once; only its hash is stored.
+	Token string `json:"token"`
 }
 
 // Job defines model for Job.
@@ -269,6 +526,17 @@ type Job struct {
 
 // JobStatus defines model for Job.Status.
 type JobStatus string
+
+// Policy defines model for Policy.
+type Policy struct {
+	Enabled   bool                `json:"enabled"`
+	Key       PolicyKey           `json:"key"`
+	UpdatedAt *time.Time          `json:"updated_at"`
+	UpdatedBy *openapi_types.UUID `json:"updated_by"`
+}
+
+// PolicyKey defines model for PolicyKey.
+type PolicyKey string
 
 // PromptAccepted Data of the `prompt` SSE event.
 type PromptAccepted struct {
@@ -297,6 +565,9 @@ type PromptRequest struct {
 	History *[]ChatMessage `json:"history,omitempty"`
 	Prompt  string         `json:"prompt"`
 }
+
+// Role defines model for Role.
+type Role string
 
 // RunRequest defines model for RunRequest.
 type RunRequest struct {
@@ -327,6 +598,39 @@ type RunResult struct {
 // RunResultStatus defines model for RunResult.Status.
 type RunResultStatus string
 
+// Score defines model for Score.
+type Score struct {
+	DecidedAt     *time.Time          `json:"decided_at"`
+	DecidedBy     *openapi_types.UUID `json:"decided_by"`
+	DecisionNote  string              `json:"decision_note"`
+	Dimension     string              `json:"dimension"`
+	FinalValue    *float64            `json:"final_value"`
+	Id            openapi_types.UUID  `json:"id"`
+	InterviewId   openapi_types.UUID  `json:"interview_id"`
+	ProposedValue float64             `json:"proposed_value"`
+	Rationale     string              `json:"rationale"`
+	Status        ScoreStatus         `json:"status"`
+}
+
+// ScoreDecisionRequest defines model for ScoreDecisionRequest.
+type ScoreDecisionRequest struct {
+	// FinalValue Required with human_adjusted, rejected otherwise.
+	FinalValue *float64                   `json:"final_value,omitempty"`
+	Note       *string                    `json:"note,omitempty"`
+	Status     ScoreDecisionRequestStatus `json:"status"`
+}
+
+// ScoreDecisionRequestStatus defines model for ScoreDecisionRequest.Status.
+type ScoreDecisionRequestStatus string
+
+// ScoreStatus defines model for ScoreStatus.
+type ScoreStatus string
+
+// SetPolicyRequest defines model for SetPolicyRequest.
+type SetPolicyRequest struct {
+	Enabled bool `json:"enabled"`
+}
+
 // StageChangeRequest defines model for StageChangeRequest.
 type StageChangeRequest struct {
 	ApplicationId string `json:"applicationId"`
@@ -354,6 +658,23 @@ type StartSessionResponseScope string
 // StartSessionResponseTokenType defines model for StartSessionResponse.TokenType.
 type StartSessionResponseTokenType string
 
+// Task defines model for Task.
+type Task struct {
+	AssigneeId  *openapi_types.UUID `json:"assignee_id"`
+	CompletedAt *time.Time          `json:"completed_at"`
+	CreatedAt   time.Time           `json:"created_at"`
+	Description string              `json:"description"`
+	DueAt       *time.Time          `json:"due_at"`
+	Id          openapi_types.UUID  `json:"id"`
+	InterviewId *openapi_types.UUID `json:"interview_id"`
+	Status      TaskStatus          `json:"status"`
+	Title       string              `json:"title"`
+	UpdatedAt   time.Time           `json:"updated_at"`
+}
+
+// TaskStatus defines model for TaskStatus.
+type TaskStatus string
+
 // TimelineEvent defines model for TimelineEvent.
 type TimelineEvent struct {
 	CompanyId      openapi_types.UUID     `json:"company_id"`
@@ -370,6 +691,44 @@ type TimelineResponse struct {
 	Events []TimelineEvent `json:"events"`
 }
 
+// UpdateCompanyRequest defines model for UpdateCompanyRequest.
+type UpdateCompanyRequest struct {
+	Name *string `json:"name,omitempty"`
+}
+
+// UpdateInterviewRequest defines model for UpdateInterviewRequest.
+type UpdateInterviewRequest struct {
+	CandidateEmail *openapi_types.Email `json:"candidate_email,omitempty"`
+	CandidateName  *string              `json:"candidate_name,omitempty"`
+	ScheduledAt    *time.Time           `json:"scheduled_at,omitempty"`
+	Status         *InterviewStatus     `json:"status,omitempty"`
+}
+
+// UpdateTaskRequest defines model for UpdateTaskRequest.
+type UpdateTaskRequest struct {
+	AssigneeId  *openapi_types.UUID `json:"assignee_id,omitempty"`
+	Description *string             `json:"description,omitempty"`
+	DueAt       *time.Time          `json:"due_at,omitempty"`
+	Status      *TaskStatus         `json:"status,omitempty"`
+	Title       *string             `json:"title,omitempty"`
+}
+
+// UpdateUserRequest defines model for UpdateUserRequest.
+type UpdateUserRequest struct {
+	DisplayName *string `json:"display_name,omitempty"`
+	Role        *Role   `json:"role,omitempty"`
+}
+
+// User defines model for User.
+type User struct {
+	CreatedAt   time.Time           `json:"created_at"`
+	DisplayName string              `json:"display_name"`
+	Email       openapi_types.Email `json:"email"`
+	Id          openapi_types.UUID  `json:"id"`
+	Role        Role                `json:"role"`
+	UpdatedAt   time.Time           `json:"updated_at"`
+}
+
 // CandidateId defines model for CandidateId.
 type CandidateId = string
 
@@ -379,9 +738,39 @@ type InterviewId = openapi_types.UUID
 // JobId defines model for JobId.
 type JobId = string
 
+// Limit defines model for Limit.
+type Limit = int
+
+// ResourceId defines model for ResourceId.
+type ResourceId = openapi_types.UUID
+
+// GetDashboardOverviewParams defines parameters for GetDashboardOverview.
+type GetDashboardOverviewParams struct {
+	Days *int `form:"days,omitempty" json:"days,omitempty"`
+}
+
+// ListInterviewsParams defines parameters for ListInterviews.
+type ListInterviewsParams struct {
+	Status *InterviewStatus `form:"status,omitempty" json:"status,omitempty"`
+	Limit  *Limit           `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// WatchInterviewLiveParams defines parameters for WatchInterviewLive.
+type WatchInterviewLiveParams struct {
+	LastEventID *int64 `json:"Last-Event-ID,omitempty"`
+}
+
 // GetInterviewTimelineParams defines parameters for GetInterviewTimeline.
 type GetInterviewTimelineParams struct {
 	AfterSeq *int64 `form:"after_seq,omitempty" json:"after_seq,omitempty"`
+}
+
+// ListTasksParams defines parameters for ListTasks.
+type ListTasksParams struct {
+	InterviewId *openapi_types.UUID `form:"interview_id,omitempty" json:"interview_id,omitempty"`
+	AssigneeId  *openapi_types.UUID `form:"assignee_id,omitempty" json:"assignee_id,omitempty"`
+	Status      *TaskStatus         `form:"status,omitempty" json:"status,omitempty"`
+	Limit       *Limit              `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // ChangeCandidateStageJSONRequestBody defines body for ChangeCandidateStage for application/json ContentType.
@@ -389,6 +778,24 @@ type ChangeCandidateStageJSONRequestBody = StageChangeRequest
 
 // CreateJobJSONRequestBody defines body for CreateJob for application/json ContentType.
 type CreateJobJSONRequestBody = CreateJobRequest
+
+// UpdateCompanyJSONRequestBody defines body for UpdateCompany for application/json ContentType.
+type UpdateCompanyJSONRequestBody = UpdateCompanyRequest
+
+// CreateInterviewJSONRequestBody defines body for CreateInterview for application/json ContentType.
+type CreateInterviewJSONRequestBody = CreateInterviewRequest
+
+// UpdateInterviewJSONRequestBody defines body for UpdateInterview for application/json ContentType.
+type UpdateInterviewJSONRequestBody = UpdateInterviewRequest
+
+// DecideInterviewScoreJSONRequestBody defines body for DecideInterviewScore for application/json ContentType.
+type DecideInterviewScoreJSONRequestBody = ScoreDecisionRequest
+
+// CreateInviteJSONRequestBody defines body for CreateInvite for application/json ContentType.
+type CreateInviteJSONRequestBody = CreateInviteRequest
+
+// SetPolicyJSONRequestBody defines body for SetPolicy for application/json ContentType.
+type SetPolicyJSONRequestBody = SetPolicyRequest
 
 // SubmitDiffJSONRequestBody defines body for SubmitDiff for application/json ContentType.
 type SubmitDiffJSONRequestBody = DiffRequest
@@ -401,6 +808,18 @@ type RunCodeJSONRequestBody = RunRequest
 
 // StartSessionJSONRequestBody defines body for StartSession for application/json ContentType.
 type StartSessionJSONRequestBody = StartSessionRequest
+
+// CreateTaskJSONRequestBody defines body for CreateTask for application/json ContentType.
+type CreateTaskJSONRequestBody = CreateTaskRequest
+
+// UpdateTaskJSONRequestBody defines body for UpdateTask for application/json ContentType.
+type UpdateTaskJSONRequestBody = UpdateTaskRequest
+
+// CreateUserJSONRequestBody defines body for CreateUser for application/json ContentType.
+type CreateUserJSONRequestBody = CreateUserRequest
+
+// UpdateUserJSONRequestBody defines body for UpdateUser for application/json ContentType.
+type UpdateUserJSONRequestBody = UpdateUserRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -422,9 +841,54 @@ type ServerInterface interface {
 	// GetCurrentCandidate Get the authenticated candidate's profile.
 	// (GET /candidate/me)
 	GetCurrentCandidate(w http.ResponseWriter, r *http.Request)
+	// GetCompany The member's company.
+	// (GET /company)
+	GetCompany(w http.ResponseWriter, r *http.Request)
+	// UpdateCompany Rename the company.
+	// (PATCH /company)
+	UpdateCompany(w http.ResponseWriter, r *http.Request)
+	// GetDashboardInterviews Per-interview activity (ClickHouse materialized view), most recently active first.
+	// (GET /dashboard/interviews)
+	GetDashboardInterviews(w http.ResponseWriter, r *http.Request)
+	// GetDashboardOverview Daily event counts by type (ClickHouse materialized view).
+	// (GET /dashboard/overview)
+	GetDashboardOverview(w http.ResponseWriter, r *http.Request, params GetDashboardOverviewParams)
+	// ListInterviews List the company's interviews, newest first.
+	// (GET /interviews)
+	ListInterviews(w http.ResponseWriter, r *http.Request, params ListInterviewsParams)
+	// CreateInterview Schedule an interview.
+	// (POST /interviews)
+	CreateInterview(w http.ResponseWriter, r *http.Request)
+	// GetInterview Get an interview.
+	// (GET /interviews/{id})
+	GetInterview(w http.ResponseWriter, r *http.Request, id InterviewId)
+	// UpdateInterview Update an interview. A terminal status sets terminal_at once. Interviews are never deleted; see erase.
+	// (PATCH /interviews/{id})
+	UpdateInterview(w http.ResponseWriter, r *http.Request, id InterviewId)
+	// RequestInterviewErasure Request erasure. Only sets erase_requested_at (keeping the first request's time); nothing is deleted here. A purge job acts on it later, honoring legal holds.
+	// (POST /interviews/{id}/erase)
+	RequestInterviewErasure(w http.ResponseWriter, r *http.Request, id InterviewId)
+	// WatchInterviewLive Stream the interview's events live as SSE (live-monitor service). Each event's id is its sequence number; send it back as Last-Event-ID to resume.
+	// (GET /interviews/{id}/live)
+	WatchInterviewLive(w http.ResponseWriter, r *http.Request, id InterviewId, params WatchInterviewLiveParams)
+	// ListInterviewScores List an interview's proposed scores and their decisions.
+	// (GET /interviews/{id}/scores)
+	ListInterviewScores(w http.ResponseWriter, r *http.Request, id InterviewId)
+	// DecideInterviewScore Record a human decision on a score. Only human_* statuses are accepted.
+	// (POST /interviews/{id}/scores/{scoreId}/decision)
+	DecideInterviewScore(w http.ResponseWriter, r *http.Request, id InterviewId, scoreId openapi_types.UUID)
 	// GetInterviewTimeline Replay an interview's events after an optional sequence cursor.
 	// (GET /interviews/{id}/timeline)
 	GetInterviewTimeline(w http.ResponseWriter, r *http.Request, id InterviewId, params GetInterviewTimelineParams)
+	// CreateInvite Issue a tokenized invite. With interview_id it invites the candidate to that interview (invites:candidate); otherwise a member with role (invites:member). The token is returned once.
+	// (POST /invites)
+	CreateInvite(w http.ResponseWriter, r *http.Request)
+	// ListPolicies The company's policy toggles, defaults filled in.
+	// (GET /policies)
+	ListPolicies(w http.ResponseWriter, r *http.Request)
+	// SetPolicy Turn a policy on or off.
+	// (PUT /policies/{key})
+	SetPolicy(w http.ResponseWriter, r *http.Request, key PolicyKey)
 	// SubmitDiff Record one debounced edit to a workspace file.
 	// (POST /session/diff)
 	SubmitDiff(w http.ResponseWriter, r *http.Request)
@@ -437,6 +901,36 @@ type ServerInterface interface {
 	// StartSession Exchange a one-time invite for a scoped Candidate Workspace session token.
 	// (POST /session/start)
 	StartSession(w http.ResponseWriter, r *http.Request)
+	// ListTasks List tasks.
+	// (GET /tasks)
+	ListTasks(w http.ResponseWriter, r *http.Request, params ListTasksParams)
+	// CreateTask Create a task.
+	// (POST /tasks)
+	CreateTask(w http.ResponseWriter, r *http.Request)
+	// DeleteTask Delete a task.
+	// (DELETE /tasks/{id})
+	DeleteTask(w http.ResponseWriter, r *http.Request, id ResourceId)
+	// GetTask Get a task.
+	// (GET /tasks/{id})
+	GetTask(w http.ResponseWriter, r *http.Request, id ResourceId)
+	// UpdateTask Update a task. assignee_id null unassigns; status done sets completed_at.
+	// (PATCH /tasks/{id})
+	UpdateTask(w http.ResponseWriter, r *http.Request, id ResourceId)
+	// ListUsers List the company's members.
+	// (GET /users)
+	ListUsers(w http.ResponseWriter, r *http.Request)
+	// CreateUser Add a member. Only owners grant owner.
+	// (POST /users)
+	CreateUser(w http.ResponseWriter, r *http.Request)
+	// DeleteUser Remove a member. Members cannot remove themselves.
+	// (DELETE /users/{id})
+	DeleteUser(w http.ResponseWriter, r *http.Request, id ResourceId)
+	// GetUser Get a member.
+	// (GET /users/{id})
+	GetUser(w http.ResponseWriter, r *http.Request, id ResourceId)
+	// UpdateUser Change a member's name or role. Members cannot change their own role.
+	// (PATCH /users/{id})
+	UpdateUser(w http.ResponseWriter, r *http.Request, id ResourceId)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -556,6 +1050,330 @@ func (siw *ServerInterfaceWrapper) GetCurrentCandidate(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// GetCompany operation middleware
+func (siw *ServerInterfaceWrapper) GetCompany(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCompany(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateCompany operation middleware
+func (siw *ServerInterfaceWrapper) UpdateCompany(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateCompany(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDashboardInterviews operation middleware
+func (siw *ServerInterfaceWrapper) GetDashboardInterviews(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDashboardInterviews(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDashboardOverview operation middleware
+func (siw *ServerInterfaceWrapper) GetDashboardOverview(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetDashboardOverviewParams
+
+	// ------------- Optional query parameter "days" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "days", r.URL.Query(), &params.Days, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "days"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "days", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDashboardOverview(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListInterviews operation middleware
+func (siw *ServerInterfaceWrapper) ListInterviews(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListInterviewsParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListInterviews(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateInterview operation middleware
+func (siw *ServerInterfaceWrapper) CreateInterview(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateInterview(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetInterview operation middleware
+func (siw *ServerInterfaceWrapper) GetInterview(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id InterviewId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetInterview(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateInterview operation middleware
+func (siw *ServerInterfaceWrapper) UpdateInterview(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id InterviewId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateInterview(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RequestInterviewErasure operation middleware
+func (siw *ServerInterfaceWrapper) RequestInterviewErasure(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id InterviewId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RequestInterviewErasure(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// WatchInterviewLive operation middleware
+func (siw *ServerInterfaceWrapper) WatchInterviewLive(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id InterviewId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params WatchInterviewLiveParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "Last-Event-ID" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Last-Event-ID")]; found {
+		var LastEventID int64
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Last-Event-ID", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Last-Event-ID", valueList[0], &LastEventID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: "int64"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Last-Event-ID", Err: err})
+			return
+		}
+
+		params.LastEventID = &LastEventID
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.WatchInterviewLive(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListInterviewScores operation middleware
+func (siw *ServerInterfaceWrapper) ListInterviewScores(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id InterviewId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListInterviewScores(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DecideInterviewScore operation middleware
+func (siw *ServerInterfaceWrapper) DecideInterviewScore(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id InterviewId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "scoreId" -------------
+	var scoreId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "scoreId", r.PathValue("scoreId"), &scoreId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scoreId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DecideInterviewScore(w, r, id, scoreId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetInterviewTimeline operation middleware
 func (siw *ServerInterfaceWrapper) GetInterviewTimeline(w http.ResponseWriter, r *http.Request) {
 
@@ -589,6 +1407,60 @@ func (siw *ServerInterfaceWrapper) GetInterviewTimeline(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetInterviewTimeline(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateInvite operation middleware
+func (siw *ServerInterfaceWrapper) CreateInvite(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateInvite(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListPolicies operation middleware
+func (siw *ServerInterfaceWrapper) ListPolicies(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPolicies(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetPolicy operation middleware
+func (siw *ServerInterfaceWrapper) SetPolicy(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "key" -------------
+	var key PolicyKey
+
+	err = runtime.BindStyledParameterWithOptions("simple", "key", r.PathValue("key"), &key, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetPolicy(w, r, key)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -645,6 +1517,276 @@ func (siw *ServerInterfaceWrapper) StartSession(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.StartSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTasks operation middleware
+func (siw *ServerInterfaceWrapper) ListTasks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListTasksParams
+
+	// ------------- Optional query parameter "interview_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "interview_id", r.URL.Query(), &params.InterviewId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "interview_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "interview_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "assignee_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "assignee_id", r.URL.Query(), &params.AssigneeId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "assignee_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "assignee_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTasks(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTask operation middleware
+func (siw *ServerInterfaceWrapper) CreateTask(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTask(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteTask operation middleware
+func (siw *ServerInterfaceWrapper) DeleteTask(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ResourceId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteTask(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTask operation middleware
+func (siw *ServerInterfaceWrapper) GetTask(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ResourceId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTask(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateTask operation middleware
+func (siw *ServerInterfaceWrapper) UpdateTask(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ResourceId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateTask(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListUsers operation middleware
+func (siw *ServerInterfaceWrapper) ListUsers(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListUsers(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateUser operation middleware
+func (siw *ServerInterfaceWrapper) CreateUser(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateUser(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteUser operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUser(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ResourceId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteUser(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUser operation middleware
+func (siw *ServerInterfaceWrapper) GetUser(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ResourceId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUser(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateUser operation middleware
+func (siw *ServerInterfaceWrapper) UpdateUser(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ResourceId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateUser(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -781,6 +1923,31 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/session/diff", wrapper.SubmitDiff)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/candidate/me", wrapper.GetCurrentCandidate)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/candidate/applications", wrapper.ListMyApplications)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/company", wrapper.GetCompany)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/company", wrapper.UpdateCompany)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/users", wrapper.ListUsers)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/users", wrapper.CreateUser)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/users/{id}", wrapper.DeleteUser)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/users/{id}", wrapper.GetUser)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/users/{id}", wrapper.UpdateUser)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/interviews", wrapper.ListInterviews)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/interviews", wrapper.CreateInterview)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/interviews/{id}", wrapper.GetInterview)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/interviews/{id}", wrapper.UpdateInterview)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/interviews/{id}/erase", wrapper.RequestInterviewErasure)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/interviews/{id}/scores", wrapper.ListInterviewScores)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/interviews/{id}/scores/{scoreId}/decision", wrapper.DecideInterviewScore)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/interviews/{id}/live", wrapper.WatchInterviewLive)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/tasks", wrapper.ListTasks)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/tasks", wrapper.CreateTask)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/tasks/{id}", wrapper.DeleteTask)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/tasks/{id}", wrapper.GetTask)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/tasks/{id}", wrapper.UpdateTask)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/invites", wrapper.CreateInvite)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/policies", wrapper.ListPolicies)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/policies/{key}", wrapper.SetPolicy)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/dashboard/overview", wrapper.GetDashboardOverview)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/dashboard/interviews", wrapper.GetDashboardInterviews)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/admin/jobs", wrapper.ListJobs)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/admin/jobs", wrapper.CreateJob)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/admin/jobs/{jobId}", wrapper.GetJob)
@@ -1051,6 +2218,511 @@ func (response GetCurrentCandidatedefaultJSONResponse) VisitGetCurrentCandidateR
 	return err
 }
 
+type GetCompanyRequestObject struct {
+}
+
+type GetCompanyResponseObject interface {
+	VisitGetCompanyResponse(w http.ResponseWriter) error
+}
+
+type GetCompany200JSONResponse Company
+
+func (response GetCompany200JSONResponse) VisitGetCompanyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCompanydefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetCompanydefaultJSONResponse) VisitGetCompanyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCompanyRequestObject struct {
+	Body *UpdateCompanyJSONRequestBody
+}
+
+type UpdateCompanyResponseObject interface {
+	VisitUpdateCompanyResponse(w http.ResponseWriter) error
+}
+
+type UpdateCompany200JSONResponse Company
+
+func (response UpdateCompany200JSONResponse) VisitUpdateCompanyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCompanydefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response UpdateCompanydefaultJSONResponse) VisitUpdateCompanyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetDashboardInterviewsRequestObject struct {
+}
+
+type GetDashboardInterviewsResponseObject interface {
+	VisitGetDashboardInterviewsResponse(w http.ResponseWriter) error
+}
+
+type GetDashboardInterviews200JSONResponse struct {
+	Interviews []InterviewActivity `json:"interviews"`
+}
+
+func (response GetDashboardInterviews200JSONResponse) VisitGetDashboardInterviewsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetDashboardInterviewsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetDashboardInterviewsdefaultJSONResponse) VisitGetDashboardInterviewsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetDashboardOverviewRequestObject struct {
+	Params GetDashboardOverviewParams
+}
+
+type GetDashboardOverviewResponseObject interface {
+	VisitGetDashboardOverviewResponse(w http.ResponseWriter) error
+}
+
+type GetDashboardOverview200JSONResponse DashboardOverview
+
+func (response GetDashboardOverview200JSONResponse) VisitGetDashboardOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetDashboardOverviewdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetDashboardOverviewdefaultJSONResponse) VisitGetDashboardOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInterviewsRequestObject struct {
+	Params ListInterviewsParams
+}
+
+type ListInterviewsResponseObject interface {
+	VisitListInterviewsResponse(w http.ResponseWriter) error
+}
+
+type ListInterviews200JSONResponse struct {
+	Interviews []Interview `json:"interviews"`
+}
+
+func (response ListInterviews200JSONResponse) VisitListInterviewsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInterviewsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListInterviewsdefaultJSONResponse) VisitListInterviewsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInterviewRequestObject struct {
+	Body *CreateInterviewJSONRequestBody
+}
+
+type CreateInterviewResponseObject interface {
+	VisitCreateInterviewResponse(w http.ResponseWriter) error
+}
+
+type CreateInterview201JSONResponse Interview
+
+func (response CreateInterview201JSONResponse) VisitCreateInterviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInterviewdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CreateInterviewdefaultJSONResponse) VisitCreateInterviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInterviewRequestObject struct {
+	Id InterviewId `json:"id"`
+}
+
+type GetInterviewResponseObject interface {
+	VisitGetInterviewResponse(w http.ResponseWriter) error
+}
+
+type GetInterview200JSONResponse Interview
+
+func (response GetInterview200JSONResponse) VisitGetInterviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInterviewdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetInterviewdefaultJSONResponse) VisitGetInterviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateInterviewRequestObject struct {
+	Id   InterviewId `json:"id"`
+	Body *UpdateInterviewJSONRequestBody
+}
+
+type UpdateInterviewResponseObject interface {
+	VisitUpdateInterviewResponse(w http.ResponseWriter) error
+}
+
+type UpdateInterview200JSONResponse Interview
+
+func (response UpdateInterview200JSONResponse) VisitUpdateInterviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateInterviewdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response UpdateInterviewdefaultJSONResponse) VisitUpdateInterviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestInterviewErasureRequestObject struct {
+	Id InterviewId `json:"id"`
+}
+
+type RequestInterviewErasureResponseObject interface {
+	VisitRequestInterviewErasureResponse(w http.ResponseWriter) error
+}
+
+type RequestInterviewErasure202JSONResponse EraseAccepted
+
+func (response RequestInterviewErasure202JSONResponse) VisitRequestInterviewErasureResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestInterviewErasuredefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response RequestInterviewErasuredefaultJSONResponse) VisitRequestInterviewErasureResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WatchInterviewLiveRequestObject struct {
+	Id     InterviewId `json:"id"`
+	Params WatchInterviewLiveParams
+}
+
+type WatchInterviewLiveResponseObject interface {
+	VisitWatchInterviewLiveResponse(w http.ResponseWriter) error
+}
+
+type WatchInterviewLive200TexteventStreamResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response WatchInterviewLive200TexteventStreamResponse) VisitWatchInterviewLiveResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		// If w doesn't support flushing, fall back to io.Copy.
+		_, err := io.Copy(w, response.Body)
+		return err
+	}
+	// text/event-stream messages are typically small; use a
+	// modest buffer and flush after each chunk so clients see
+	// events immediately instead of waiting on OS buffering.
+	buf := make([]byte, 4096)
+	for {
+		n, err := response.Body.Read(buf)
+		if n > 0 {
+			if _, writeErr := w.Write(buf[:n]); writeErr != nil {
+				return writeErr
+			}
+			flusher.Flush()
+		}
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+	}
+}
+
+type WatchInterviewLivedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response WatchInterviewLivedefaultJSONResponse) VisitWatchInterviewLiveResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInterviewScoresRequestObject struct {
+	Id InterviewId `json:"id"`
+}
+
+type ListInterviewScoresResponseObject interface {
+	VisitListInterviewScoresResponse(w http.ResponseWriter) error
+}
+
+type ListInterviewScores200JSONResponse struct {
+	Scores []Score `json:"scores"`
+}
+
+func (response ListInterviewScores200JSONResponse) VisitListInterviewScoresResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInterviewScoresdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListInterviewScoresdefaultJSONResponse) VisitListInterviewScoresResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DecideInterviewScoreRequestObject struct {
+	Id      InterviewId        `json:"id"`
+	ScoreId openapi_types.UUID `json:"scoreId"`
+	Body    *DecideInterviewScoreJSONRequestBody
+}
+
+type DecideInterviewScoreResponseObject interface {
+	VisitDecideInterviewScoreResponse(w http.ResponseWriter) error
+}
+
+type DecideInterviewScore200JSONResponse Score
+
+func (response DecideInterviewScore200JSONResponse) VisitDecideInterviewScoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DecideInterviewScoredefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response DecideInterviewScoredefaultJSONResponse) VisitDecideInterviewScoreResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetInterviewTimelineRequestObject struct {
 	Id     InterviewId `json:"id"`
 	Params GetInterviewTimelineParams
@@ -1122,6 +2794,125 @@ type GetInterviewTimelinedefaultJSONResponse struct {
 }
 
 func (response GetInterviewTimelinedefaultJSONResponse) VisitGetInterviewTimelineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInviteRequestObject struct {
+	Body *CreateInviteJSONRequestBody
+}
+
+type CreateInviteResponseObject interface {
+	VisitCreateInviteResponse(w http.ResponseWriter) error
+}
+
+type CreateInvite201JSONResponse Invite
+
+func (response CreateInvite201JSONResponse) VisitCreateInviteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInvitedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CreateInvitedefaultJSONResponse) VisitCreateInviteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPoliciesRequestObject struct {
+}
+
+type ListPoliciesResponseObject interface {
+	VisitListPoliciesResponse(w http.ResponseWriter) error
+}
+
+type ListPolicies200JSONResponse struct {
+	Policies []Policy `json:"policies"`
+}
+
+func (response ListPolicies200JSONResponse) VisitListPoliciesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPoliciesdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListPoliciesdefaultJSONResponse) VisitListPoliciesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPolicyRequestObject struct {
+	Key  PolicyKey `json:"key"`
+	Body *SetPolicyJSONRequestBody
+}
+
+type SetPolicyResponseObject interface {
+	VisitSetPolicyResponse(w http.ResponseWriter) error
+}
+
+type SetPolicy200JSONResponse Policy
+
+func (response SetPolicy200JSONResponse) VisitSetPolicyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPolicydefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response SetPolicydefaultJSONResponse) VisitSetPolicyResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -1552,6 +3343,389 @@ func (response StartSessiondefaultJSONResponse) VisitStartSessionResponse(w http
 	return err
 }
 
+type ListTasksRequestObject struct {
+	Params ListTasksParams
+}
+
+type ListTasksResponseObject interface {
+	VisitListTasksResponse(w http.ResponseWriter) error
+}
+
+type ListTasks200JSONResponse struct {
+	Tasks []Task `json:"tasks"`
+}
+
+func (response ListTasks200JSONResponse) VisitListTasksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTasksdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListTasksdefaultJSONResponse) VisitListTasksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTaskRequestObject struct {
+	Body *CreateTaskJSONRequestBody
+}
+
+type CreateTaskResponseObject interface {
+	VisitCreateTaskResponse(w http.ResponseWriter) error
+}
+
+type CreateTask201JSONResponse Task
+
+func (response CreateTask201JSONResponse) VisitCreateTaskResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTaskdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CreateTaskdefaultJSONResponse) VisitCreateTaskResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTaskRequestObject struct {
+	Id ResourceId `json:"id"`
+}
+
+type DeleteTaskResponseObject interface {
+	VisitDeleteTaskResponse(w http.ResponseWriter) error
+}
+
+type DeleteTask204Response struct {
+}
+
+func (response DeleteTask204Response) VisitDeleteTaskResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteTaskdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response DeleteTaskdefaultJSONResponse) VisitDeleteTaskResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTaskRequestObject struct {
+	Id ResourceId `json:"id"`
+}
+
+type GetTaskResponseObject interface {
+	VisitGetTaskResponse(w http.ResponseWriter) error
+}
+
+type GetTask200JSONResponse Task
+
+func (response GetTask200JSONResponse) VisitGetTaskResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTaskdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetTaskdefaultJSONResponse) VisitGetTaskResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTaskRequestObject struct {
+	Id   ResourceId `json:"id"`
+	Body *UpdateTaskJSONRequestBody
+}
+
+type UpdateTaskResponseObject interface {
+	VisitUpdateTaskResponse(w http.ResponseWriter) error
+}
+
+type UpdateTask200JSONResponse Task
+
+func (response UpdateTask200JSONResponse) VisitUpdateTaskResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTaskdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response UpdateTaskdefaultJSONResponse) VisitUpdateTaskResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUsersRequestObject struct {
+}
+
+type ListUsersResponseObject interface {
+	VisitListUsersResponse(w http.ResponseWriter) error
+}
+
+type ListUsers200JSONResponse struct {
+	Users []User `json:"users"`
+}
+
+func (response ListUsers200JSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUsersdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response ListUsersdefaultJSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateUserRequestObject struct {
+	Body *CreateUserJSONRequestBody
+}
+
+type CreateUserResponseObject interface {
+	VisitCreateUserResponse(w http.ResponseWriter) error
+}
+
+type CreateUser201JSONResponse User
+
+func (response CreateUser201JSONResponse) VisitCreateUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateUserdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response CreateUserdefaultJSONResponse) VisitCreateUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteUserRequestObject struct {
+	Id ResourceId `json:"id"`
+}
+
+type DeleteUserResponseObject interface {
+	VisitDeleteUserResponse(w http.ResponseWriter) error
+}
+
+type DeleteUser204Response struct {
+}
+
+func (response DeleteUser204Response) VisitDeleteUserResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteUserdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response DeleteUserdefaultJSONResponse) VisitDeleteUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetUserRequestObject struct {
+	Id ResourceId `json:"id"`
+}
+
+type GetUserResponseObject interface {
+	VisitGetUserResponse(w http.ResponseWriter) error
+}
+
+type GetUser200JSONResponse User
+
+func (response GetUser200JSONResponse) VisitGetUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetUserdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetUserdefaultJSONResponse) VisitGetUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateUserRequestObject struct {
+	Id   ResourceId `json:"id"`
+	Body *UpdateUserJSONRequestBody
+}
+
+type UpdateUserResponseObject interface {
+	VisitUpdateUserResponse(w http.ResponseWriter) error
+}
+
+type UpdateUser200JSONResponse User
+
+func (response UpdateUser200JSONResponse) VisitUpdateUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateUserdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response UpdateUserdefaultJSONResponse) VisitUpdateUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// ChangeCandidateStage Move a candidate to a new pipeline stage.
@@ -1572,9 +3746,54 @@ type StrictServerInterface interface {
 	// GetCurrentCandidate Get the authenticated candidate's profile.
 	// (GET /candidate/me)
 	GetCurrentCandidate(ctx context.Context, request GetCurrentCandidateRequestObject) (GetCurrentCandidateResponseObject, error)
+	// GetCompany The member's company.
+	// (GET /company)
+	GetCompany(ctx context.Context, request GetCompanyRequestObject) (GetCompanyResponseObject, error)
+	// UpdateCompany Rename the company.
+	// (PATCH /company)
+	UpdateCompany(ctx context.Context, request UpdateCompanyRequestObject) (UpdateCompanyResponseObject, error)
+	// GetDashboardInterviews Per-interview activity (ClickHouse materialized view), most recently active first.
+	// (GET /dashboard/interviews)
+	GetDashboardInterviews(ctx context.Context, request GetDashboardInterviewsRequestObject) (GetDashboardInterviewsResponseObject, error)
+	// GetDashboardOverview Daily event counts by type (ClickHouse materialized view).
+	// (GET /dashboard/overview)
+	GetDashboardOverview(ctx context.Context, request GetDashboardOverviewRequestObject) (GetDashboardOverviewResponseObject, error)
+	// ListInterviews List the company's interviews, newest first.
+	// (GET /interviews)
+	ListInterviews(ctx context.Context, request ListInterviewsRequestObject) (ListInterviewsResponseObject, error)
+	// CreateInterview Schedule an interview.
+	// (POST /interviews)
+	CreateInterview(ctx context.Context, request CreateInterviewRequestObject) (CreateInterviewResponseObject, error)
+	// GetInterview Get an interview.
+	// (GET /interviews/{id})
+	GetInterview(ctx context.Context, request GetInterviewRequestObject) (GetInterviewResponseObject, error)
+	// UpdateInterview Update an interview. A terminal status sets terminal_at once. Interviews are never deleted; see erase.
+	// (PATCH /interviews/{id})
+	UpdateInterview(ctx context.Context, request UpdateInterviewRequestObject) (UpdateInterviewResponseObject, error)
+	// RequestInterviewErasure Request erasure. Only sets erase_requested_at (keeping the first request's time); nothing is deleted here. A purge job acts on it later, honoring legal holds.
+	// (POST /interviews/{id}/erase)
+	RequestInterviewErasure(ctx context.Context, request RequestInterviewErasureRequestObject) (RequestInterviewErasureResponseObject, error)
+	// WatchInterviewLive Stream the interview's events live as SSE (live-monitor service). Each event's id is its sequence number; send it back as Last-Event-ID to resume.
+	// (GET /interviews/{id}/live)
+	WatchInterviewLive(ctx context.Context, request WatchInterviewLiveRequestObject) (WatchInterviewLiveResponseObject, error)
+	// ListInterviewScores List an interview's proposed scores and their decisions.
+	// (GET /interviews/{id}/scores)
+	ListInterviewScores(ctx context.Context, request ListInterviewScoresRequestObject) (ListInterviewScoresResponseObject, error)
+	// DecideInterviewScore Record a human decision on a score. Only human_* statuses are accepted.
+	// (POST /interviews/{id}/scores/{scoreId}/decision)
+	DecideInterviewScore(ctx context.Context, request DecideInterviewScoreRequestObject) (DecideInterviewScoreResponseObject, error)
 	// GetInterviewTimeline Replay an interview's events after an optional sequence cursor.
 	// (GET /interviews/{id}/timeline)
 	GetInterviewTimeline(ctx context.Context, request GetInterviewTimelineRequestObject) (GetInterviewTimelineResponseObject, error)
+	// CreateInvite Issue a tokenized invite. With interview_id it invites the candidate to that interview (invites:candidate); otherwise a member with role (invites:member). The token is returned once.
+	// (POST /invites)
+	CreateInvite(ctx context.Context, request CreateInviteRequestObject) (CreateInviteResponseObject, error)
+	// ListPolicies The company's policy toggles, defaults filled in.
+	// (GET /policies)
+	ListPolicies(ctx context.Context, request ListPoliciesRequestObject) (ListPoliciesResponseObject, error)
+	// SetPolicy Turn a policy on or off.
+	// (PUT /policies/{key})
+	SetPolicy(ctx context.Context, request SetPolicyRequestObject) (SetPolicyResponseObject, error)
 	// SubmitDiff Record one debounced edit to a workspace file.
 	// (POST /session/diff)
 	SubmitDiff(ctx context.Context, request SubmitDiffRequestObject) (SubmitDiffResponseObject, error)
@@ -1587,6 +3806,36 @@ type StrictServerInterface interface {
 	// StartSession Exchange a one-time invite for a scoped Candidate Workspace session token.
 	// (POST /session/start)
 	StartSession(ctx context.Context, request StartSessionRequestObject) (StartSessionResponseObject, error)
+	// ListTasks List tasks.
+	// (GET /tasks)
+	ListTasks(ctx context.Context, request ListTasksRequestObject) (ListTasksResponseObject, error)
+	// CreateTask Create a task.
+	// (POST /tasks)
+	CreateTask(ctx context.Context, request CreateTaskRequestObject) (CreateTaskResponseObject, error)
+	// DeleteTask Delete a task.
+	// (DELETE /tasks/{id})
+	DeleteTask(ctx context.Context, request DeleteTaskRequestObject) (DeleteTaskResponseObject, error)
+	// GetTask Get a task.
+	// (GET /tasks/{id})
+	GetTask(ctx context.Context, request GetTaskRequestObject) (GetTaskResponseObject, error)
+	// UpdateTask Update a task. assignee_id null unassigns; status done sets completed_at.
+	// (PATCH /tasks/{id})
+	UpdateTask(ctx context.Context, request UpdateTaskRequestObject) (UpdateTaskResponseObject, error)
+	// ListUsers List the company's members.
+	// (GET /users)
+	ListUsers(ctx context.Context, request ListUsersRequestObject) (ListUsersResponseObject, error)
+	// CreateUser Add a member. Only owners grant owner.
+	// (POST /users)
+	CreateUser(ctx context.Context, request CreateUserRequestObject) (CreateUserResponseObject, error)
+	// DeleteUser Remove a member. Members cannot remove themselves.
+	// (DELETE /users/{id})
+	DeleteUser(ctx context.Context, request DeleteUserRequestObject) (DeleteUserResponseObject, error)
+	// GetUser Get a member.
+	// (GET /users/{id})
+	GetUser(ctx context.Context, request GetUserRequestObject) (GetUserResponseObject, error)
+	// UpdateUser Change a member's name or role. Members cannot change their own role.
+	// (PATCH /users/{id})
+	UpdateUser(ctx context.Context, request UpdateUserRequestObject) (UpdateUserResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -1790,6 +4039,340 @@ func (sh *strictHandler) GetCurrentCandidate(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+// GetCompany operation middleware
+func (sh *strictHandler) GetCompany(w http.ResponseWriter, r *http.Request) {
+	var request GetCompanyRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCompany(ctx, request.(GetCompanyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCompany")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCompanyResponseObject); ok {
+		if err := validResponse.VisitGetCompanyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateCompany operation middleware
+func (sh *strictHandler) UpdateCompany(w http.ResponseWriter, r *http.Request) {
+	var request UpdateCompanyRequestObject
+
+	var body UpdateCompanyJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateCompany(ctx, request.(UpdateCompanyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateCompany")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateCompanyResponseObject); ok {
+		if err := validResponse.VisitUpdateCompanyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetDashboardInterviews operation middleware
+func (sh *strictHandler) GetDashboardInterviews(w http.ResponseWriter, r *http.Request) {
+	var request GetDashboardInterviewsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetDashboardInterviews(ctx, request.(GetDashboardInterviewsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetDashboardInterviews")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetDashboardInterviewsResponseObject); ok {
+		if err := validResponse.VisitGetDashboardInterviewsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetDashboardOverview operation middleware
+func (sh *strictHandler) GetDashboardOverview(w http.ResponseWriter, r *http.Request, params GetDashboardOverviewParams) {
+	var request GetDashboardOverviewRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetDashboardOverview(ctx, request.(GetDashboardOverviewRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetDashboardOverview")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetDashboardOverviewResponseObject); ok {
+		if err := validResponse.VisitGetDashboardOverviewResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListInterviews operation middleware
+func (sh *strictHandler) ListInterviews(w http.ResponseWriter, r *http.Request, params ListInterviewsParams) {
+	var request ListInterviewsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListInterviews(ctx, request.(ListInterviewsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListInterviews")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListInterviewsResponseObject); ok {
+		if err := validResponse.VisitListInterviewsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateInterview operation middleware
+func (sh *strictHandler) CreateInterview(w http.ResponseWriter, r *http.Request) {
+	var request CreateInterviewRequestObject
+
+	var body CreateInterviewJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateInterview(ctx, request.(CreateInterviewRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateInterview")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateInterviewResponseObject); ok {
+		if err := validResponse.VisitCreateInterviewResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetInterview operation middleware
+func (sh *strictHandler) GetInterview(w http.ResponseWriter, r *http.Request, id InterviewId) {
+	var request GetInterviewRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInterview(ctx, request.(GetInterviewRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInterview")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetInterviewResponseObject); ok {
+		if err := validResponse.VisitGetInterviewResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateInterview operation middleware
+func (sh *strictHandler) UpdateInterview(w http.ResponseWriter, r *http.Request, id InterviewId) {
+	var request UpdateInterviewRequestObject
+
+	request.Id = id
+
+	var body UpdateInterviewJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateInterview(ctx, request.(UpdateInterviewRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateInterview")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateInterviewResponseObject); ok {
+		if err := validResponse.VisitUpdateInterviewResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RequestInterviewErasure operation middleware
+func (sh *strictHandler) RequestInterviewErasure(w http.ResponseWriter, r *http.Request, id InterviewId) {
+	var request RequestInterviewErasureRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RequestInterviewErasure(ctx, request.(RequestInterviewErasureRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RequestInterviewErasure")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RequestInterviewErasureResponseObject); ok {
+		if err := validResponse.VisitRequestInterviewErasureResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// WatchInterviewLive operation middleware
+func (sh *strictHandler) WatchInterviewLive(w http.ResponseWriter, r *http.Request, id InterviewId, params WatchInterviewLiveParams) {
+	var request WatchInterviewLiveRequestObject
+
+	request.Id = id
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.WatchInterviewLive(ctx, request.(WatchInterviewLiveRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "WatchInterviewLive")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(WatchInterviewLiveResponseObject); ok {
+		if err := validResponse.VisitWatchInterviewLiveResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListInterviewScores operation middleware
+func (sh *strictHandler) ListInterviewScores(w http.ResponseWriter, r *http.Request, id InterviewId) {
+	var request ListInterviewScoresRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListInterviewScores(ctx, request.(ListInterviewScoresRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListInterviewScores")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListInterviewScoresResponseObject); ok {
+		if err := validResponse.VisitListInterviewScoresResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DecideInterviewScore operation middleware
+func (sh *strictHandler) DecideInterviewScore(w http.ResponseWriter, r *http.Request, id InterviewId, scoreId openapi_types.UUID) {
+	var request DecideInterviewScoreRequestObject
+
+	request.Id = id
+	request.ScoreId = scoreId
+
+	var body DecideInterviewScoreJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DecideInterviewScore(ctx, request.(DecideInterviewScoreRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DecideInterviewScore")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DecideInterviewScoreResponseObject); ok {
+		if err := validResponse.VisitDecideInterviewScoreResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetInterviewTimeline operation middleware
 func (sh *strictHandler) GetInterviewTimeline(w http.ResponseWriter, r *http.Request, id InterviewId, params GetInterviewTimelineParams) {
 	var request GetInterviewTimelineRequestObject
@@ -1810,6 +4393,94 @@ func (sh *strictHandler) GetInterviewTimeline(w http.ResponseWriter, r *http.Req
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetInterviewTimelineResponseObject); ok {
 		if err := validResponse.VisitGetInterviewTimelineResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateInvite operation middleware
+func (sh *strictHandler) CreateInvite(w http.ResponseWriter, r *http.Request) {
+	var request CreateInviteRequestObject
+
+	var body CreateInviteJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateInvite(ctx, request.(CreateInviteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateInvite")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateInviteResponseObject); ok {
+		if err := validResponse.VisitCreateInviteResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListPolicies operation middleware
+func (sh *strictHandler) ListPolicies(w http.ResponseWriter, r *http.Request) {
+	var request ListPoliciesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPolicies(ctx, request.(ListPoliciesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPolicies")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListPoliciesResponseObject); ok {
+		if err := validResponse.VisitListPoliciesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetPolicy operation middleware
+func (sh *strictHandler) SetPolicy(w http.ResponseWriter, r *http.Request, key PolicyKey) {
+	var request SetPolicyRequestObject
+
+	request.Key = key
+
+	var body SetPolicyJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetPolicy(ctx, request.(SetPolicyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetPolicy")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetPolicyResponseObject); ok {
+		if err := validResponse.VisitSetPolicyResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1934,6 +4605,288 @@ func (sh *strictHandler) StartSession(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(StartSessionResponseObject); ok {
 		if err := validResponse.VisitStartSessionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTasks operation middleware
+func (sh *strictHandler) ListTasks(w http.ResponseWriter, r *http.Request, params ListTasksParams) {
+	var request ListTasksRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTasks(ctx, request.(ListTasksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTasks")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTasksResponseObject); ok {
+		if err := validResponse.VisitListTasksResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateTask operation middleware
+func (sh *strictHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
+	var request CreateTaskRequestObject
+
+	var body CreateTaskJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTask(ctx, request.(CreateTaskRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTask")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateTaskResponseObject); ok {
+		if err := validResponse.VisitCreateTaskResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteTask operation middleware
+func (sh *strictHandler) DeleteTask(w http.ResponseWriter, r *http.Request, id ResourceId) {
+	var request DeleteTaskRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteTask(ctx, request.(DeleteTaskRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteTask")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteTaskResponseObject); ok {
+		if err := validResponse.VisitDeleteTaskResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetTask operation middleware
+func (sh *strictHandler) GetTask(w http.ResponseWriter, r *http.Request, id ResourceId) {
+	var request GetTaskRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTask(ctx, request.(GetTaskRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTask")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetTaskResponseObject); ok {
+		if err := validResponse.VisitGetTaskResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateTask operation middleware
+func (sh *strictHandler) UpdateTask(w http.ResponseWriter, r *http.Request, id ResourceId) {
+	var request UpdateTaskRequestObject
+
+	request.Id = id
+
+	var body UpdateTaskJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateTask(ctx, request.(UpdateTaskRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateTask")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateTaskResponseObject); ok {
+		if err := validResponse.VisitUpdateTaskResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListUsers operation middleware
+func (sh *strictHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
+	var request ListUsersRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListUsers(ctx, request.(ListUsersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListUsers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListUsersResponseObject); ok {
+		if err := validResponse.VisitListUsersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateUser operation middleware
+func (sh *strictHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+	var request CreateUserRequestObject
+
+	var body CreateUserJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateUser(ctx, request.(CreateUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateUserResponseObject); ok {
+		if err := validResponse.VisitCreateUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteUser operation middleware
+func (sh *strictHandler) DeleteUser(w http.ResponseWriter, r *http.Request, id ResourceId) {
+	var request DeleteUserRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteUser(ctx, request.(DeleteUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteUserResponseObject); ok {
+		if err := validResponse.VisitDeleteUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetUser operation middleware
+func (sh *strictHandler) GetUser(w http.ResponseWriter, r *http.Request, id ResourceId) {
+	var request GetUserRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetUser(ctx, request.(GetUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetUserResponseObject); ok {
+		if err := validResponse.VisitGetUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateUser operation middleware
+func (sh *strictHandler) UpdateUser(w http.ResponseWriter, r *http.Request, id ResourceId) {
+	var request UpdateUserRequestObject
+
+	request.Id = id
+
+	var body UpdateUserJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateUser(ctx, request.(UpdateUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateUserResponseObject); ok {
+		if err := validResponse.VisitUpdateUserResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

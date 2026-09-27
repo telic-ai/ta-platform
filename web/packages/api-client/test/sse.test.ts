@@ -17,8 +17,8 @@ describe("parseSSE", () => {
   });
 
   it("handles events split across chunks, CRLF, comments and unknown fields", async () => {
-    expect(await collect([": ping\n\nev", "ent: done\r\nid: 3\r\nda", "ta: {}\r", "\n\r\n"])).toEqual([
-      { event: "done", data: "{}" },
+    expect(await collect([": ping\n\nev", "ent: done\r\nid: 3\r\nretry: 5\r\nda", "ta: {}\r", "\n\r\n"])).toEqual([
+      { event: "done", data: "{}", id: "3" },
     ]);
   });
 
@@ -38,5 +38,19 @@ describe("parseSSE", () => {
 
   it("drops an unterminated trailing event instead of hanging", async () => {
     expect(await collect(["event: delta\ndata: {}"])).toEqual([]);
+  });
+});
+
+describe("parseSSE ids", () => {
+  it("attaches an event's id only when it has one", async () => {
+    const events = [];
+    for await (const e of parseSSE(streamOf(["id: 7\nevent: event\ndata: {}\n\n", "event: caught_up\ndata: {}\n\n"]))) {
+      events.push(e);
+    }
+    expect(events).toEqual([
+      { event: "event", data: "{}", id: "7" },
+      { event: "caught_up", data: "{}" },
+    ]);
+    expect("id" in events[1]).toBe(false);
   });
 });
