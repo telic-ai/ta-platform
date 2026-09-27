@@ -56,6 +56,14 @@ design.
   202, deletes nothing). Postgres side is `postgres.AdminStore`; every
   statement lives in `adminQueries` and a unit test asserts each is
   `company_id`-scoped.
+- `internal/livemonitor` — Live Monitoring (`cmd/live-monitor`, `:8083`
+  locally). A Kafka consumer group appends each session event to a capped
+  per-interview Redis ring (sorted set by `sequence_number`, duplicates
+  dropped) and `PUBLISH`es it atomically (Lua). `GET /interviews/{id}/live`
+  is SSE with the sequence number as the event id: it subscribes, catches
+  up after `Last-Event-ID` from the ring (ClickHouse via `replay.Store` when
+  the ring no longer reaches back), then streams live, repairing pub/sub
+  gaps from the ring. `MemoryBus` is the in-process Bus for tests.
 - `internal/aigateway` — AI Gateway (`cmd/ai-gateway`): `POST /v1/complete`
   streams a model completion as SSE and always emits `ai.response.completed`.
   `internal/aigateway/byok` resolves a company's own key (BYOK): an
@@ -69,6 +77,7 @@ design.
   cases (skipped if `runsc` is not registered). Reference pod manifests are
   in `deploy/k8s/execution-sandbox/`.
 - `internal/e2e` — cross-service integration tests (`integration` tag).
+  The live-monitoring and Admin API flows are covered here too.
 - `api/openapi.yaml` — the single source of truth for candidate + admin
   HTTP APIs; `make generate` produces Go server stubs
   (`internal/apigen/...` via oapi-codegen) and the TS client in

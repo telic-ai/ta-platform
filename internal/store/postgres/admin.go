@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/telic-ai/ta-platform/internal/adminapi"
 	"github.com/telic-ai/ta-platform/internal/domain"
+	"github.com/telic-ai/ta-platform/internal/livemonitor"
 	"github.com/telic-ai/ta-platform/internal/rbac"
 )
 
@@ -19,7 +20,10 @@ import (
 // company_id (see adminQueries and its test).
 type AdminStore struct{ pool *pgxpool.Pool }
 
-var _ adminapi.Store = (*AdminStore)(nil)
+var (
+	_ adminapi.Store     = (*AdminStore)(nil)
+	_ livemonitor.Access = (*AdminStore)(nil)
+)
 
 func NewAdminStore(pool *pgxpool.Pool) *AdminStore { return &AdminStore{pool: pool} }
 
@@ -88,6 +92,11 @@ var adminQueries = map[string]string{
 		decision_note = $6, decided_by = $7, decided_at = $8, updated_at = now()
 		WHERE company_id = $1 AND interview_id = $2 AND id = $3 AND $4::text LIKE 'human\_%'
 		RETURNING ` + scoreColumns,
+
+	// A missing policy row means the default (enabled); a purged interview
+	// cannot be watched.
+	"liveMonitoring": `SELECT COALESCE((SELECT enabled FROM company_policies WHERE company_id = $1 AND key = 'live_monitoring'), true)
+		FROM interviews WHERE company_id = $1 AND id = $2 AND purged_at IS NULL`,
 
 	"listPolicies": `SELECT key, enabled, updated_by, updated_at FROM company_policies WHERE company_id = $1 ORDER BY key`,
 	"setPolicy": `INSERT INTO company_policies (company_id, key, enabled, updated_by) VALUES ($1, $2, $3, $4)
@@ -258,6 +267,22 @@ func (s *AdminStore) ListPolicies(ctx context.Context, companyID uuid.UUID) ([]d
 
 func (s *AdminStore) SetPolicy(ctx context.Context, companyID uuid.UUID, key string, enabled bool, by uuid.UUID) (domain.Policy, error) {
 	return one(scanPolicy(s.pool.QueryRow(ctx, adminQueries["setPolicy"], companyID, key, enabled, by)))("policy")
+}
+
+// LiveMonitoring implements livemonitor.Access.
+func (s *AdminStore) LiveMonitoring(ctx context.Context, companyID, interviewID uuid.UUID) error {
+	var enabled bool
+	err := s.pool.QueryRow(ctx, adminQueries["liveMonitoring"], companyID, interviewID).Scan(&enabled)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return livemonitor.ErrInterviewNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("check live monitoring access: %w", err)
+	}
+	if !enabled {
+		return livemonitor.ErrMonitoringDisabled
+	}
+	return nil
 }
 
 func scanPolicy(row pgx.Row) (domain.Policy, error) {

@@ -13,6 +13,7 @@ import (
 
 // Event is one Server-Sent Event.
 type Event struct {
+	ID   string
 	Name string
 	Data []byte
 }
@@ -62,6 +63,36 @@ func (s *Writer) SendRaw(name string, data []byte) error {
 	return nil
 }
 
+// SendWithID writes one event with an id field, which the client echoes
+// back as Last-Event-ID when it reconnects. Neither id nor name may contain
+// a newline.
+func (s *Writer) SendWithID(id, name string, data []byte) error {
+	if strings.ContainsAny(id, "\r\n") {
+		return errors.New("sse: event id contains a newline")
+	}
+	if strings.ContainsAny(name, "\r\n") {
+		return errors.New("sse: event name contains a newline")
+	}
+	if _, err := fmt.Fprintf(s.w, "id: %s\nevent: %s\ndata: %s\n\n", id, name, data); err != nil {
+		return err
+	}
+	s.flusher.Flush()
+	return nil
+}
+
+// Comment writes a comment line, which clients ignore; it keeps idle
+// connections open through proxies.
+func (s *Writer) Comment(text string) error {
+	if strings.ContainsAny(text, "\r\n") {
+		return errors.New("sse: comment contains a newline")
+	}
+	if _, err := fmt.Fprintf(s.w, ": %s\n\n", text); err != nil {
+		return err
+	}
+	s.flusher.Flush()
+	return nil
+}
+
 // Reader parses an event stream.
 type Reader struct {
 	scanner *bufio.Scanner
@@ -102,6 +133,8 @@ func (r *Reader) Next() (Event, error) {
 			event.Name, seen = value, true
 		case "data":
 			data, seen = append(data, value), true
+		case "id":
+			event.ID, seen = value, true
 		}
 	}
 	if err := r.scanner.Err(); err != nil {
