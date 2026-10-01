@@ -119,7 +119,7 @@ func TestTypesenseSearchFiltersByTenantAndInterview(t *testing.T) {
 }
 
 func TestClickHouseTablesAreThePerInterviewTables(t *testing.T) {
-	if !reflect.DeepEqual(ClickHouseTables, []string{"events", "session_metric_rows"}) {
+	if !reflect.DeepEqual(ClickHouseTables, []string{"events", "session_metric_rows", "interview_activity"}) {
 		t.Fatalf("ClickHouseTables = %v", ClickHouseTables)
 	}
 }

@@ -16,6 +16,7 @@ import (
 	kafkago "github.com/segmentio/kafka-go"
 	"github.com/telic-ai/ta-platform/internal/analytics"
 	"github.com/telic-ai/ta-platform/internal/auth"
+	"github.com/telic-ai/ta-platform/internal/dashboard"
 	"github.com/telic-ai/ta-platform/internal/eventindexer"
 	"github.com/telic-ai/ta-platform/internal/eventlogwriter"
 	"github.com/telic-ai/ta-platform/internal/events"
@@ -62,6 +63,9 @@ func newWorld(t *testing.T, ctx context.Context) *world {
 		t.Fatal(err)
 	}
 	if _, err := analytics.Migrate(ctx, w.ch); err != nil {
+		t.Fatal(err)
+	}
+	if err := dashboard.NewClickHouseStore(w.ch).EnsureViews(ctx); err != nil {
 		t.Fatal(err)
 	}
 	w.search = typesense.New(cfg.TypesenseURL, cfg.TypesenseKey)
@@ -112,6 +116,8 @@ func (w *world) seed(t *testing.T, ctx context.Context, spec interviewSpec) uuid
 		  VALUES ($1, $2, $3, $4, now(), 'completed')`, []any{w.companyID, sessionID, interviewID, auth.HashToken(uuid.NewString())}},
 		{`INSERT INTO scores (company_id, session_id, interview_id, trigger_event_type, metrics, metrics_complete, recommendation_error, computed_at)
 		  VALUES ($1, $2, $3, 'session.submitted', '{}', true, 'disabled', now())`, []any{w.companyID, sessionID, interviewID}},
+		{`INSERT INTO interview_scores (company_id, id, interview_id, dimension, proposed_value, rationale)
+		  VALUES ($1, $2, $3, 'problem_solving', 3.5, 'used the hint well')`, []any{w.companyID, uuid.New(), interviewID}},
 	} {
 		if _, err := w.pool.Exec(ctx, statement.sql, statement.args...); err != nil {
 			t.Fatal(err)
@@ -156,9 +162,9 @@ func snapshotKey(companyID, interviewID uuid.UUID) string {
 }
 
 type footprint struct {
-	SearchDocs, Events, MetricRows, Sessions, Invites, Scores, PurgeLog int64
-	Exists, Purged                                                      bool
-	Name                                                                string
+	SearchDocs, Events, MetricRows, Activity, Sessions, Invites, Scores, InterviewScores, PurgeLog int64
+	Exists, Purged                                                                                 bool
+	Name                                                                                           string
 }
 
 func (w *world) footprint(t *testing.T, ctx context.Context, interviewID uuid.UUID) footprint {
@@ -170,14 +176,14 @@ func (w *world) footprint(t *testing.T, ctx context.Context, interviewID uuid.UU
 		t.Fatal(err)
 	}
 	f.SearchDocs = int64(result.Found)
-	for table, dst := range map[string]*int64{"events": &f.Events, "session_metric_rows": &f.MetricRows} {
+	for table, dst := range map[string]*int64{"events": &f.Events, "session_metric_rows": &f.MetricRows, "interview_activity": &f.Activity} {
 		var n uint64
 		if err := w.ch.QueryRow(ctx, "SELECT count() FROM "+table+" WHERE company_id = ? AND interview_id = ?", w.companyID.String(), interviewID.String()).Scan(&n); err != nil {
 			t.Fatal(err)
 		}
 		*dst = int64(n)
 	}
-	for table, dst := range map[string]*int64{"sessions": &f.Sessions, "invites": &f.Invites, "scores": &f.Scores, "purge_log": &f.PurgeLog} {
+	for table, dst := range map[string]*int64{"sessions": &f.Sessions, "invites": &f.Invites, "scores": &f.Scores, "interview_scores": &f.InterviewScores, "purge_log": &f.PurgeLog} {
 		if err := w.pool.QueryRow(ctx, "SELECT count(*) FROM "+table+" WHERE company_id = $1 AND interview_id = $2", w.companyID, interviewID).Scan(dst); err != nil {
 			t.Fatal(err)
 		}
@@ -190,7 +196,7 @@ func (w *world) footprint(t *testing.T, ctx context.Context, interviewID uuid.UU
 	return f
 }
 
-var intact = footprint{SearchDocs: 2, Events: 3, MetricRows: 3, Sessions: 1, Invites: 1, Scores: 1, Exists: true, Name: "Ada Lovelace"}
+var intact = footprint{SearchDocs: 2, Events: 3, MetricRows: 3, Activity: 3, Sessions: 1, Invites: 1, Scores: 1, InterviewScores: 1, Exists: true, Name: "Ada Lovelace"}
 var skeleton = footprint{PurgeLog: 1, Exists: true, Purged: true, Name: postgres.ErasedPlaceholder}
 
 func (w *world) housekeeper(t *testing.T, analyticsStore housekeeper.Analytics) *housekeeper.Housekeeper {
@@ -282,7 +288,7 @@ func TestFailedPurgeIsRetriedToCompletion(t *testing.T) {
 		t.Fatalf("report = %+v, %v", report, err)
 	}
 	partial := w.footprint(t, ctx, id)
-	if partial.SearchDocs != 0 || partial.Events != 3 || partial.Purged || partial.Sessions != 1 || partial.PurgeLog != 0 {
+	if partial.SearchDocs != 0 || partial.Events != 3 || partial.InterviewScores != 1 || partial.Purged || partial.Sessions != 1 || partial.PurgeLog != 0 {
 		t.Fatalf("after failed run = %+v; want search deleted, everything else intact", partial)
 	}
 

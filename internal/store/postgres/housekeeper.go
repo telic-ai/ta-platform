@@ -88,6 +88,7 @@ func (s *HousekeeperStore) Purge(ctx context.Context, candidate housekeeper.Cand
 			       terminal_at = coalesce(terminal_at, now()), purged_at = now(), updated_at = now()
 			 WHERE company_id = $1 AND id = $2`},
 		{"delete scores", `DELETE FROM scores WHERE company_id = $1 AND interview_id = $2`},
+		{"delete interview scores", `DELETE FROM interview_scores WHERE company_id = $1 AND interview_id = $2`},
 		{"delete sessions", `DELETE FROM sessions WHERE company_id = $1 AND interview_id = $2`},
 		{"delete invites", `DELETE FROM invites WHERE company_id = $1 AND interview_id = $2`},
 	}

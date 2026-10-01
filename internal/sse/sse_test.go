@@ -67,3 +67,38 @@ func TestReaderReportsTruncatedEvent(t *testing.T) {
 		t.Fatalf("err = %v, want ErrUnexpectedEOF", err)
 	}
 }
+
+func TestSendWithIDAndCommentRoundTrip(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	writer, _ := NewWriter(recorder)
+	if err := writer.SendWithID("7", "event", []byte(`{"a":1}`)); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Comment("ping"); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.SendWithID("8", "event", []byte(`{}`)); err != nil {
+		t.Fatal(err)
+	}
+	want := "id: 7\nevent: event\ndata: {\"a\":1}\n\n: ping\n\nid: 8\nevent: event\ndata: {}\n\n"
+	if recorder.Body.String() != want {
+		t.Fatalf("body = %q", recorder.Body.String())
+	}
+	reader := NewReader(strings.NewReader(recorder.Body.String()))
+	for _, id := range []string{"7", "8"} {
+		event, err := reader.Next()
+		if err != nil || event.ID != id || event.Name != "event" {
+			t.Fatalf("event = %+v, %v", event, err)
+		}
+	}
+	if _, err := reader.Next(); !errors.Is(err, io.EOF) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestSendWithIDAndCommentRejectNewlines(t *testing.T) {
+	writer, _ := NewWriter(httptest.NewRecorder())
+	if writer.SendWithID("1\n", "e", nil) == nil || writer.SendWithID("1", "e\r", nil) == nil || writer.Comment("a\nb") == nil {
+		t.Fatal("newline accepted")
+	}
+}

@@ -46,6 +46,40 @@ design.
 - `internal/auth` — opaque bearer-token hashing and session lookup. A
   session belongs either to a company member (`user_id`) or to a candidate's
   interview (`interview_id`).
+- `internal/rbac` — resolves a company member's (company_id, user_id, role)
+  from their bearer session and holds the role → permission matrix.
+  `rbac.Middleware` authenticates; `rbac.Require` guards each route.
+- `internal/adminapi` — Admin API (`cmd/admin-api`, `:8082` locally):
+  company-scoped CRUD for company/users/interviews/tasks, tokenized invites,
+  human-only score decisions (`human_*`), policy toggles, and erasure
+  *marking* (`POST /interviews/{id}/erase` sets `erase_requested_at`, returns
+  202, deletes nothing). Postgres side is `postgres.AdminStore`; every
+  statement lives in `adminQueries` and a unit test asserts each is
+  `company_id`-scoped.
+- `internal/livemonitor` — Live Monitoring (`cmd/live-monitor`, `:8083`
+  locally). A Kafka consumer group appends each session event to a capped
+  per-interview Redis ring (sorted set by `sequence_number`, duplicates
+  dropped) and `PUBLISH`es it atomically (Lua). `GET /interviews/{id}/live`
+  is SSE with the sequence number as the event id: it subscribes, catches
+  up after `Last-Event-ID` from the ring (ClickHouse via `replay.Store` when
+  the ring no longer reaches back), then streams live, repairing pub/sub
+  gaps from the ring. `MemoryBus` is the in-process Bus for tests.
+- `internal/dashboard` — dashboards and replay as Admin API routes:
+  ClickHouse materialized views (`company_daily_events`,
+  `interview_activity`, created by admin-api at startup after the events
+  table) behind `GET /dashboard/overview` and `GET /dashboard/interviews`,
+  and `GET /interviews/{id}/timeline` (honours the `replay` policy). View
+  counts are at-least-once (a view sees Kafka redeliveries the events table
+  later deduplicates).
+- `internal/search` — Typesense scoped keys: `POST /search/key` on the
+  Admin API derives a short-lived (≤1h) key from `TYPESENSE_SEARCH_KEY` (a
+  search-only parent key, never the admin key) that hard-embeds
+  `filter_by: company_id:=<company>`. Typesense ANDs it into every search
+  and rejects the key if it is altered; the integration test proves this
+  against the local Typesense.
+- `internal/demo` + `cmd/demo-seed` — `ENV=local` only: creates a company
+  whose owner/interviewer/viewer have ready-made session tokens (member
+  sign-in is not built yet) and prints them as JSON.
 - `internal/aigateway` — AI Gateway (`cmd/ai-gateway`): `POST /v1/complete`
   streams a model completion as SSE and always emits `ai.response.completed`.
   `internal/aigateway/byok` resolves a company's own key (BYOK): an
@@ -81,9 +115,10 @@ design.
 - `internal/housekeeper` — Housekeeper CronJob (`cmd/housekeeper`,
   `deploy/k8s/housekeeper`): purges interviews past `RETENTION` or with
   `erase_requested_at`, never under `legal_hold`. Holding the interview row
-  lock, it deletes Typesense documents, then ClickHouse `events` and
-  `session_metric_rows`, then skeletonizes Postgres (PII blanked; invites,
-  sessions, scores deleted) and writes `purge_log`. It never touches S3
+  lock, it deletes Typesense documents, then ClickHouse `events`,
+  `session_metric_rows` and `interview_activity`, then skeletonizes
+  Postgres (PII blanked; invites, sessions, scores and interview_scores
+  deleted) and writes `purge_log`. It never touches S3
   (bucket lifecycle) or Kafka (topic retention). There is no `ai_calls`
   table, despite the vault note.
 - `internal/billing` — monthly close (`cmd/billing-close`,
@@ -94,10 +129,17 @@ design.
   into `invoices`/`invoice_lines`. Re-runs recompute drafts; issued invoices
   are never touched.
 - `internal/e2e` — cross-service integration tests (`integration` tag).
+  The live-monitoring and Admin API flows are covered here too.
 - `api/openapi.yaml` — the single source of truth for candidate + admin
   HTTP APIs; `make generate` produces Go server stubs
   (`internal/apigen/...` via oapi-codegen) and the TS client in
   `web/packages/api-client` (via openapi-typescript).
+- `web/apps/company` — Vite + React company app: dashboard, interviews
+  (schedule, candidate invite links, erase), live view (resumes via
+  Last-Event-ID) and replay (rebuilds files from `code.diff` patches on the
+  shared workspace starters). `pnpm dev` serves :5174 and proxies `/api` to
+  admin-api (:8082) and `/live-api` to live-monitor (:8083). Sign in with a
+  token from `go run ./cmd/demo-seed`.
 - `web/` — pnpm workspace: `apps/company`, `apps/candidate`,
   `packages/ui`, `packages/api-client`. `apps/candidate` is a Vite + React
   app that talks only to the Candidate Workspace (`pnpm dev` proxies
@@ -114,6 +156,7 @@ design.
 - `make integration-test` — `go test -tags integration ./...`, requires `make up`
 - `make migrate-up` / `make migrate-down` — apply all pending Postgres
   migrations or roll back the latest version.
+- `make demo-seed` — create a local demo company and print member tokens.
 - `make web-build` — `pnpm -r build` in `web/`
 - `make web-test` — `pnpm -r test` (Vitest) in `web/`
 - `make generate` — regenerate API stubs/clients from `api/openapi.yaml`

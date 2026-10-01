@@ -4,8 +4,9 @@ info:
   version: 0.1.0
   description: >
     Candidate and admin HTTP APIs for the ta-platform talent-acquisition
-    platform. This is an initial contract scaffold; extend it as
-    Candidate Workspace Service and Admin API endpoints are built out.
+    platform. Admin API routes are company-scoped: the company comes from
+    the member's session, and x-permission names the RBAC permission each
+    route requires (see internal/rbac).
 servers:
   - url: /v1
 
@@ -238,6 +239,629 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  /company:
+    get:
+      operationId: getCompany
+      summary: The member's company.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: company:read
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+        default:
+          $ref: "#/components/responses/Error"
+    patch:
+      operationId: updateCompany
+      summary: Rename the company.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: company:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCompanyRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /users:
+    get:
+      operationId: listUsers
+      summary: List the company's members.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: users:read
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [users]
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createUser
+      summary: Add a member. Only owners grant owner.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: users:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      summary: Get a member.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: users:read
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        default:
+          $ref: "#/components/responses/Error"
+    patch:
+      operationId: updateUser
+      summary: Change a member's name or role. Members cannot change their own role.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: users:write
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteUser
+      summary: Remove a member. Members cannot remove themselves.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: users:write
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204":
+          description: Success.
+        default:
+          $ref: "#/components/responses/Error"
+
+  /interviews:
+    get:
+      operationId: listInterviews
+      summary: List the company's interviews, newest first.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: interviews:read
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/InterviewStatus"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [interviews]
+                properties:
+                  interviews:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Interview"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createInterview
+      summary: Schedule an interview.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: interviews:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInterviewRequest"
+      responses:
+        "201":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Interview"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /interviews/{id}:
+    get:
+      operationId: getInterview
+      summary: Get an interview.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: interviews:read
+      parameters:
+        - $ref: "#/components/parameters/InterviewId"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Interview"
+        default:
+          $ref: "#/components/responses/Error"
+    patch:
+      operationId: updateInterview
+      summary: Update an interview. A terminal status sets terminal_at once. Interviews are never deleted; see erase.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: interviews:write
+      parameters:
+        - $ref: "#/components/parameters/InterviewId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInterviewRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Interview"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /interviews/{id}/erase:
+    post:
+      operationId: requestInterviewErasure
+      summary: Request erasure. Only sets erase_requested_at (keeping the first request's time); nothing is deleted here. A purge job acts on it later, honoring legal holds.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: interviews:erase
+      parameters:
+        - $ref: "#/components/parameters/InterviewId"
+      responses:
+        "202":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EraseAccepted"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /interviews/{id}/scores:
+    get:
+      operationId: listInterviewScores
+      summary: List an interview's proposed scores and their decisions.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: scores:read
+      parameters:
+        - $ref: "#/components/parameters/InterviewId"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [scores]
+                properties:
+                  scores:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Score"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /interviews/{id}/scores/{scoreId}/decision:
+    post:
+      operationId: decideInterviewScore
+      summary: Record a human decision on a score. Only human_* statuses are accepted.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: scores:approve
+      parameters:
+        - $ref: "#/components/parameters/InterviewId"
+        - name: scoreId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScoreDecisionRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Score"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /interviews/{id}/live:
+    get:
+      operationId: watchInterviewLive
+      summary: Stream the interview's events live as SSE (live-monitor service). Each event's id is its sequence number; send it back as Last-Event-ID to resume.
+      tags: [live]
+      security:
+        - companySession: []
+      x-permission: interviews:live
+      parameters:
+        - $ref: "#/components/parameters/InterviewId"
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+      responses:
+        "200":
+          description: >
+            text/event-stream of `event` events (data is a TimelineEvent,
+            id its sequence_number), one `caught_up` event after the
+            replay of missed events, and `: ping` heartbeats.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Error"
+
+  /tasks:
+    get:
+      operationId: listTasks
+      summary: List tasks.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: tasks:read
+      parameters:
+        - name: interview_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: assignee_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/TaskStatus"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tasks]
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Task"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createTask
+      summary: Create a task.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: tasks:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskRequest"
+      responses:
+        "201":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      summary: Get a task.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: tasks:read
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        default:
+          $ref: "#/components/responses/Error"
+    patch:
+      operationId: updateTask
+      summary: Update a task. assignee_id null unassigns; status done sets completed_at.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: tasks:write
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteTask
+      summary: Delete a task.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: tasks:write
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204":
+          description: Success.
+        default:
+          $ref: "#/components/responses/Error"
+
+  /invites:
+    post:
+      operationId: createInvite
+      summary: Issue a tokenized invite. With interview_id it invites the candidate to that interview (invites:candidate); otherwise a member with role (invites:member). The token is returned once.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: invites:candidate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInviteRequest"
+      responses:
+        "201":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invite"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /policies:
+    get:
+      operationId: listPolicies
+      summary: The company's policy toggles, defaults filled in.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: policies:read
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [policies]
+                properties:
+                  policies:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Policy"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /policies/{key}:
+    put:
+      operationId: setPolicy
+      summary: Turn a policy on or off.
+      tags: [admin]
+      security:
+        - companySession: []
+      x-permission: policies:write
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/PolicyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetPolicyRequest"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Policy"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /dashboard/overview:
+    get:
+      operationId: getDashboardOverview
+      summary: Daily event counts by type (ClickHouse materialized view).
+      tags: [dashboard]
+      security:
+        - companySession: []
+      x-permission: analytics:read
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 90
+            default: 14
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardOverview"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /dashboard/interviews:
+    get:
+      operationId: getDashboardInterviews
+      summary: Per-interview activity (ClickHouse materialized view), most recently active first.
+      tags: [dashboard]
+      security:
+        - companySession: []
+      x-permission: analytics:read
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [interviews]
+                properties:
+                  interviews:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/InterviewActivity"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /search/key:
+    post:
+      operationId: issueSearchKey
+      summary: >
+        Issue a short-lived Typesense search key for the member's company.
+        The key is derived from a search-only parent key and hard-embeds
+        filter_by company_id:=<company>, which Typesense ANDs into every
+        search; altering it invalidates the key.
+      tags: [search]
+      security:
+        - companySession: []
+      x-permission: search
+      responses:
+        "201":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IssuedSearchKey"
+        default:
+          $ref: "#/components/responses/Error"
+
   /admin/jobs:
     get:
       operationId: listJobs
@@ -336,6 +960,22 @@ components:
       schema:
         type: string
         format: uuid
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
     JobId:
       name: jobId
       in: path
@@ -574,6 +1214,249 @@ components:
         code:
           type: string
 
+    Role:
+      type: string
+      enum: [owner, admin, recruiter, interviewer, viewer]
+    Company:
+      type: object
+      required: [id, name, slug, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        slug: {type: string}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    UpdateCompanyRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name: {type: string, minLength: 1, maxLength: 200}
+    User:
+      type: object
+      required: [id, email, display_name, role, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        email: {type: string, format: email}
+        display_name: {type: string}
+        role: {$ref: "#/components/schemas/Role"}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    CreateUserRequest:
+      type: object
+      additionalProperties: false
+      required: [email, role]
+      properties:
+        email: {type: string, format: email}
+        display_name: {type: string}
+        role: {$ref: "#/components/schemas/Role"}
+    UpdateUserRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        display_name: {type: string}
+        role: {$ref: "#/components/schemas/Role"}
+    InterviewStatus:
+      type: string
+      enum: [scheduled, in_progress, completed, cancelled]
+    Interview:
+      type: object
+      required: [id, candidate_name, candidate_email, status, created_by, scheduled_at, terminal_at,
+        erase_requested_at, legal_hold, purged_at, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        candidate_name: {type: string}
+        candidate_email: {type: string, format: email}
+        status: {$ref: "#/components/schemas/InterviewStatus"}
+        created_by: {type: string, format: uuid, nullable: true}
+        scheduled_at: {type: string, format: date-time, nullable: true}
+        terminal_at: {type: string, format: date-time, nullable: true}
+        erase_requested_at: {type: string, format: date-time, nullable: true}
+        legal_hold: {type: boolean}
+        purged_at: {type: string, format: date-time, nullable: true}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    CreateInterviewRequest:
+      type: object
+      additionalProperties: false
+      required: [candidate_name, candidate_email]
+      properties:
+        candidate_name: {type: string, minLength: 1, maxLength: 200}
+        candidate_email: {type: string, format: email}
+        scheduled_at: {type: string, format: date-time}
+    UpdateInterviewRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        candidate_name: {type: string, minLength: 1, maxLength: 200}
+        candidate_email: {type: string, format: email}
+        status: {$ref: "#/components/schemas/InterviewStatus"}
+        scheduled_at: {type: string, format: date-time}
+    EraseAccepted:
+      type: object
+      required: [id, erase_requested_at, legal_hold]
+      properties:
+        id: {type: string, format: uuid}
+        erase_requested_at: {type: string, format: date-time}
+        legal_hold: {type: boolean}
+    ScoreStatus:
+      type: string
+      enum: [proposed, human_approved, human_rejected, human_adjusted]
+    Score:
+      type: object
+      required: [id, interview_id, dimension, proposed_value, rationale, status, final_value, decision_note, decided_by, decided_at]
+      properties:
+        id: {type: string, format: uuid}
+        interview_id: {type: string, format: uuid}
+        dimension: {type: string}
+        proposed_value: {type: number, format: double}
+        rationale: {type: string}
+        status: {$ref: "#/components/schemas/ScoreStatus"}
+        final_value: {type: number, format: double, nullable: true}
+        decision_note: {type: string}
+        decided_by: {type: string, format: uuid, nullable: true}
+        decided_at: {type: string, format: date-time, nullable: true}
+    ScoreDecisionRequest:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [human_approved, human_rejected, human_adjusted]
+        final_value:
+          type: number
+          format: double
+          description: Required with human_adjusted, rejected otherwise.
+        note: {type: string}
+    TaskStatus:
+      type: string
+      enum: [open, in_progress, done]
+    Task:
+      type: object
+      required: [id, interview_id, assignee_id, title, description, status, due_at, completed_at, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        interview_id: {type: string, format: uuid, nullable: true}
+        assignee_id: {type: string, format: uuid, nullable: true}
+        title: {type: string}
+        description: {type: string}
+        status: {$ref: "#/components/schemas/TaskStatus"}
+        due_at: {type: string, format: date-time, nullable: true}
+        completed_at: {type: string, format: date-time, nullable: true}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    CreateTaskRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: {type: string, minLength: 1, maxLength: 200}
+        description: {type: string}
+        interview_id: {type: string, format: uuid}
+        assignee_id: {type: string, format: uuid}
+        due_at: {type: string, format: date-time}
+    UpdateTaskRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        title: {type: string, minLength: 1, maxLength: 200}
+        description: {type: string}
+        status: {$ref: "#/components/schemas/TaskStatus"}
+        assignee_id: {type: string, format: uuid, nullable: true}
+        due_at: {type: string, format: date-time}
+    CreateInviteRequest:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email: {type: string, format: email}
+        role:
+          $ref: "#/components/schemas/Role"
+        interview_id:
+          type: string
+          format: uuid
+          description: Set for a candidate invite, which takes no role.
+        expires_in_seconds:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 2592000
+    Invite:
+      type: object
+      required: [id, email, role, interview_id, expires_at, token]
+      properties:
+        id: {type: string, format: uuid}
+        email: {type: string, format: email}
+        role: {type: string, description: A member role, or "candidate".}
+        interview_id: {type: string, format: uuid, nullable: true}
+        expires_at: {type: string, format: date-time}
+        token: {type: string, description: Returned once; only its hash is stored.}
+    PolicyKey:
+      type: string
+      enum: [ai_assistance, ai_scoring, code_execution, live_monitoring, replay]
+    Policy:
+      type: object
+      required: [key, enabled, updated_by, updated_at]
+      properties:
+        key: {$ref: "#/components/schemas/PolicyKey"}
+        enabled: {type: boolean}
+        updated_by: {type: string, format: uuid, nullable: true}
+        updated_at: {type: string, format: date-time, nullable: true}
+    SetPolicyRequest:
+      type: object
+      additionalProperties: false
+      required: [enabled]
+      properties:
+        enabled: {type: boolean}
+    DailyCount:
+      type: object
+      required: [day, event_type, events]
+      properties:
+        day: {type: string, format: date}
+        event_type: {type: string}
+        events: {type: integer, format: int64}
+    DashboardOverview:
+      type: object
+      required: [since, days, daily, totals]
+      properties:
+        since: {type: string, format: date}
+        days: {type: integer}
+        daily:
+          type: array
+          items: {$ref: "#/components/schemas/DailyCount"}
+        totals:
+          type: object
+          additionalProperties: {type: integer, format: int64}
+    InterviewActivity:
+      type: object
+      required: [interview_id, events, prompts, ai_responses, runs, runs_succeeded, diffs, ai_applied_diffs,
+        lines_added, lines_removed, first_at, last_at]
+      properties:
+        interview_id: {type: string, format: uuid}
+        events: {type: integer, format: int64}
+        prompts: {type: integer, format: int64}
+        ai_responses: {type: integer, format: int64}
+        runs: {type: integer, format: int64}
+        runs_succeeded: {type: integer, format: int64}
+        diffs: {type: integer, format: int64}
+        ai_applied_diffs: {type: integer, format: int64}
+        lines_added: {type: integer, format: int64}
+        lines_removed: {type: integer, format: int64}
+        first_at: {type: string, format: date-time}
+        last_at: {type: string, format: date-time}
+    IssuedSearchKey:
+      type: object
+      required: [key, filter_by, expires_at, host, collections]
+      properties:
+        key: {type: string}
+        filter_by:
+          type: string
+          description: The embedded filter, company_id:=<company id>.
+        expires_at: {type: string, format: date-time}
+        host: {type: string}
+        collections:
+          type: array
+          items: {type: string}
     Candidate:
       type: object
       required: [id, email, fullName]

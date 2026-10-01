@@ -1,4 +1,4 @@
-.PHONY: build test integration-test lint generate check web-build web-test web-lint up down smoke migrate-up migrate-down
+.PHONY: build test integration-test lint generate check web-build web-test web-lint up down smoke migrate-up migrate-down demo-seed
 
 build:
 	go build ./...
@@ -38,5 +38,8 @@ migrate-up:
 
 migrate-down:
 	go run ./cmd/migrate down
+
+demo-seed:
+	go run ./cmd/demo-seed
 
 check: build test web-build web-test

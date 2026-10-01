@@ -29,18 +29,28 @@ func InterviewFilter(companyID, interviewID uuid.UUID) string {
 	return fmt.Sprintf("company_id:=`%s` && interview_id:=`%s`", companyID, interviewID)
 }
 
-// ClickHouseTables are the tables holding per-interview rows: the event log
-// and the per-session metric projection. Aggregate views (task daily,
-// funnel, billing usage) keep only ids and counts and are left intact, so
-// past usage and invoices stay reproducible.
-var ClickHouseTables = []string{"events", "session_metric_rows"}
+// ClickHouseTables are the tables holding per-interview rows: the event log,
+// the per-session metric projection and the dashboard's per-interview
+// activity. Aggregate tables (task daily, funnel, billing usage, company
+// daily events) keep only ids and counts and are left intact, so past usage
+// and invoices stay reproducible.
+var ClickHouseTables = []string{"events", "session_metric_rows", "interview_activity"}
 
 // ClickHouseAnalytics deletes an interview's rows with lightweight deletes,
-// which hide the rows immediately and remove them at the next merge.
+// which hide the rows immediately and remove them at the next merge. A
+// table that does not exist yet (its owner has not started) holds nothing
+// to delete and is skipped.
 type ClickHouseAnalytics struct{ Conn driver.Conn }
 
 func (a ClickHouseAnalytics) DeleteInterview(ctx context.Context, companyID, interviewID uuid.UUID) error {
 	for _, table := range ClickHouseTables {
+		var exists uint64
+		if err := a.Conn.QueryRow(ctx, `SELECT count() FROM system.tables WHERE database = currentDatabase() AND name = ?`, table).Scan(&exists); err != nil {
+			return fmt.Errorf("check %s: %w", table, err)
+		}
+		if exists == 0 {
+			continue
+		}
 		statement := "DELETE FROM " + table + " WHERE company_id = ? AND interview_id = ?"
 		if err := a.Conn.Exec(ctx, statement, companyID.String(), interviewID.String()); err != nil {
 			return fmt.Errorf("delete from %s: %w", table, err)
