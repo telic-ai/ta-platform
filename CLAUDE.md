@@ -63,6 +63,14 @@ design.
   Typesense `session_events` collection, keyed by `event_id` so redelivery
   is a no-op. Searches must filter by `company_id`. Typesense is reached
   through `internal/store/typesense` (`TYPESENSE_URL`, `TYPESENSE_API_KEY`).
+- `internal/scoring` — Scoring Service (`cmd/scoring-service`): on
+  `session.submitted`/`session.expired` it waits (NACK + capped backoff)
+  until the ClickHouse event log holds every sequence number up to the
+  trigger, computes `internal/scoring/metrics` (pure functions; fixtures in
+  `metrics/fixtures` are shared with the ClickHouse view test), asks for a
+  strict-JSON AI recommendation, and stores one `scores` row per session with
+  `score.computed` in the outbox. An AI failure stores a null recommendation
+  with `recommendation_error`; it never blocks the row.
 - `internal/e2e` — cross-service integration tests (`integration` tag).
 - `api/openapi.yaml` — the single source of truth for candidate + admin
   HTTP APIs; `make generate` produces Go server stubs

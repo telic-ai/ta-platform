@@ -23,6 +23,12 @@ channels:
         $ref: '#/components/messages/ExecutionCompleted'
       codeDiff:
         $ref: '#/components/messages/CodeDiff'
+      sessionSubmitted:
+        $ref: '#/components/messages/SessionSubmitted'
+      sessionExpired:
+        $ref: '#/components/messages/SessionExpired'
+      scoreComputed:
+        $ref: '#/components/messages/ScoreComputed'
 operations:
   publishSessionEvent:
     action: send
@@ -165,6 +171,63 @@ components:
               patch: {type: string, description: Single-file unified diff.}
               lines_added: {type: integer}
               lines_removed: {type: integer}
+    SessionSubmitted:
+      name: session.submitted
+      contentType: application/json
+      description: >
+        The candidate submitted; the session is completed. Its sequence_number
+        is the session's last allocation, so the Scoring Service treats every
+        lower sequence number of the interview as part of the session.
+      payload:
+        type: object
+        properties:
+          event_type: {type: string, const: session.submitted}
+          schema_version: {type: integer, const: 1}
+          payload:
+            type: object
+            required: [session_id, interview_id]
+            properties:
+              session_id: {type: string}
+              interview_id: {type: string}
+    SessionExpired:
+      name: session.expired
+      contentType: application/json
+      description: An active session reached its deadline without a submission. Same contract as session.submitted.
+      payload:
+        type: object
+        properties:
+          event_type: {type: string, const: session.expired}
+          schema_version: {type: integer, const: 1}
+          payload:
+            type: object
+            required: [session_id, interview_id]
+            properties:
+              session_id: {type: string}
+              interview_id: {type: string}
+    ScoreComputed:
+      name: score.computed
+      contentType: application/json
+      description: >
+        Written to the outbox by the Scoring Service in the same transaction as
+        the score row, at most once per session. An AI failure leaves
+        recommendation empty and sets recommendation_error; metrics are always
+        present.
+      payload:
+        type: object
+        properties:
+          event_type: {type: string, const: score.computed}
+          schema_version: {type: integer, const: 1}
+          payload:
+            type: object
+            required: [session_id, interview_id, trigger, metrics_complete, metrics]
+            properties:
+              session_id: {type: string}
+              interview_id: {type: string}
+              trigger: {type: string, enum: [session.submitted, session.expired]}
+              metrics_complete: {type: boolean, description: False when the event log was still behind the trigger after every retry.}
+              metrics: {type: object, description: The Scoring metrics package's Metrics.}
+              recommendation: {type: string, enum: [advance, hold, reject]}
+              recommendation_error: {type: string, description: Stable code; set when no recommendation was stored.}
   schemas:
     Envelope:
       type: object

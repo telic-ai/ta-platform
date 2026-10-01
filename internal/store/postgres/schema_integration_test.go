@@ -71,17 +71,18 @@ func TestMigrationsAndTenantIsolation(t *testing.T) {
 		"event_outbox": "envelope",
 	})
 	assertColumns(t, ctx, pool, schema, map[string]string{"sessions": "last_diff_sequence"})
+	assertColumns(t, ctx, pool, schema, map[string]string{"scores": "metrics"})
 	assertCrossTenantQueryReturnsNothing(t, ctx, pool)
 	assertSessionHasExactlyOnePrincipal(t, ctx, pool)
 
 	// Roll back every migration, newest first.
-	const migrationCount = 7
+	const migrationCount = 8
 	for version := migrationCount; version > 0; version-- {
 		if err := runner.Down(ctx); err != nil {
 			t.Fatalf("migrate down from version %d: %v", version, err)
 		}
 	}
-	for _, table := range []string{"companies", "users", "tasks", "interviews", "invites", "sessions", "event_outbox"} {
+	for _, table := range []string{"companies", "users", "tasks", "interviews", "invites", "sessions", "event_outbox", "scores"} {
 		var exists bool
 		qualified := fmt.Sprintf("%s.%s", schema, table)
 		if err := pool.QueryRow(ctx, `SELECT to_regclass($1) IS NOT NULL`, qualified).Scan(&exists); err != nil {
