@@ -71,6 +71,13 @@ design.
   strict-JSON AI recommendation, and stores one `scores` row per session with
   `score.computed` in the outbox. An AI failure stores a null recommendation
   with `recommendation_error`; it never blocks the row.
+- `internal/analytics` — ClickHouse materialized views over `events`
+  (`mv_session_metrics`, `mv_task_daily`, `mv_funnel`, `mv_billing_usage`),
+  created (and backfilled when new) by `cmd/event-log-writer` at startup.
+  Read them through the deduplicating views `v_session_metrics`,
+  `v_task_daily`, `v_funnel`, `v_billing_usage`; never sum a view target
+  without `FINAL`. `v_session_metrics` must stay equal to
+  `internal/scoring/metrics` — the fixture test enforces it.
 - `internal/e2e` — cross-service integration tests (`integration` tag).
 - `api/openapi.yaml` — the single source of truth for candidate + admin
   HTTP APIs; `make generate` produces Go server stubs
