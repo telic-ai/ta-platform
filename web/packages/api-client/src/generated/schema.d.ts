@@ -132,6 +132,304 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/company": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The member's company. */
+        get: operations["getCompany"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename the company. */
+        patch: operations["updateCompany"];
+        trace?: never;
+    };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the company's members. */
+        get: operations["listUsers"];
+        put?: never;
+        /** Add a member. Only owners grant owner. */
+        post: operations["createUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a member. */
+        get: operations["getUser"];
+        put?: never;
+        post?: never;
+        /** Remove a member. Members cannot remove themselves. */
+        delete: operations["deleteUser"];
+        options?: never;
+        head?: never;
+        /** Change a member's name or role. Members cannot change their own role. */
+        patch: operations["updateUser"];
+        trace?: never;
+    };
+    "/interviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the company's interviews, newest first. */
+        get: operations["listInterviews"];
+        put?: never;
+        /** Schedule an interview. */
+        post: operations["createInterview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interviews/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an interview. */
+        get: operations["getInterview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update an interview. A terminal status sets terminal_at once. Interviews are never deleted; see erase. */
+        patch: operations["updateInterview"];
+        trace?: never;
+    };
+    "/interviews/{id}/erase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request erasure. Only sets erase_requested_at (keeping the first request's time); nothing is deleted here. A purge job acts on it later, honoring legal holds. */
+        post: operations["requestInterviewErasure"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interviews/{id}/scores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List an interview's proposed scores and their decisions. */
+        get: operations["listInterviewScores"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interviews/{id}/scores/{scoreId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record a human decision on a score. Only human_* statuses are accepted. */
+        post: operations["decideInterviewScore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interviews/{id}/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream the interview's events live as SSE (live-monitor service). Each event's id is its sequence number; send it back as Last-Event-ID to resume. */
+        get: operations["watchInterviewLive"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List tasks. */
+        get: operations["listTasks"];
+        put?: never;
+        /** Create a task. */
+        post: operations["createTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a task. */
+        get: operations["getTask"];
+        put?: never;
+        post?: never;
+        /** Delete a task. */
+        delete: operations["deleteTask"];
+        options?: never;
+        head?: never;
+        /** Update a task. assignee_id null unassigns; status done sets completed_at. */
+        patch: operations["updateTask"];
+        trace?: never;
+    };
+    "/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue a tokenized invite. With interview_id it invites the candidate to that interview (invites:candidate); otherwise a member with role (invites:member). The token is returned once. */
+        post: operations["createInvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The company's policy toggles, defaults filled in. */
+        get: operations["listPolicies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/policies/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Turn a policy on or off. */
+        put: operations["setPolicy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboard/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Daily event counts by type (ClickHouse materialized view). */
+        get: operations["getDashboardOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboard/interviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Per-interview activity (ClickHouse materialized view), most recently active first. */
+        get: operations["getDashboardInterviews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/search/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue a short-lived Typesense search key for the member's company. The key is derived from a search-only parent key and hard-embeds filter_by company_id:=<company>, which Typesense ANDs into every search; altering it invalidates the key. */
+        post: operations["issueSearchKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/jobs": {
         parameters: {
             query?: never;
@@ -300,6 +598,250 @@ export interface components {
             message: string;
             code?: string;
         };
+        /** @enum {string} */
+        Role: "owner" | "admin" | "recruiter" | "interviewer" | "viewer";
+        Company: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            slug: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpdateCompanyRequest: {
+            name?: string;
+        };
+        User: {
+            /** Format: uuid */
+            id: string;
+            /** Format: email */
+            email: string;
+            display_name: string;
+            role: components["schemas"]["Role"];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        CreateUserRequest: {
+            /** Format: email */
+            email: string;
+            display_name?: string;
+            role: components["schemas"]["Role"];
+        };
+        UpdateUserRequest: {
+            display_name?: string;
+            role?: components["schemas"]["Role"];
+        };
+        /** @enum {string} */
+        InterviewStatus: "scheduled" | "in_progress" | "completed" | "cancelled";
+        Interview: {
+            /** Format: uuid */
+            id: string;
+            candidate_name: string;
+            /** Format: email */
+            candidate_email: string;
+            status: components["schemas"]["InterviewStatus"];
+            /** Format: uuid */
+            created_by: string | null;
+            /** Format: date-time */
+            scheduled_at: string | null;
+            /** Format: date-time */
+            terminal_at: string | null;
+            /** Format: date-time */
+            erase_requested_at: string | null;
+            legal_hold: boolean;
+            /** Format: date-time */
+            purged_at: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        CreateInterviewRequest: {
+            candidate_name: string;
+            /** Format: email */
+            candidate_email: string;
+            /** Format: date-time */
+            scheduled_at?: string;
+        };
+        UpdateInterviewRequest: {
+            candidate_name?: string;
+            /** Format: email */
+            candidate_email?: string;
+            status?: components["schemas"]["InterviewStatus"];
+            /** Format: date-time */
+            scheduled_at?: string;
+        };
+        EraseAccepted: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            erase_requested_at: string;
+            legal_hold: boolean;
+        };
+        /** @enum {string} */
+        ScoreStatus: "proposed" | "human_approved" | "human_rejected" | "human_adjusted";
+        Score: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            interview_id: string;
+            dimension: string;
+            /** Format: double */
+            proposed_value: number;
+            rationale: string;
+            status: components["schemas"]["ScoreStatus"];
+            /** Format: double */
+            final_value: number | null;
+            decision_note: string;
+            /** Format: uuid */
+            decided_by: string | null;
+            /** Format: date-time */
+            decided_at: string | null;
+        };
+        ScoreDecisionRequest: {
+            /** @enum {string} */
+            status: "human_approved" | "human_rejected" | "human_adjusted";
+            /**
+             * Format: double
+             * @description Required with human_adjusted, rejected otherwise.
+             */
+            final_value?: number;
+            note?: string;
+        };
+        /** @enum {string} */
+        TaskStatus: "open" | "in_progress" | "done";
+        Task: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            interview_id: string | null;
+            /** Format: uuid */
+            assignee_id: string | null;
+            title: string;
+            description: string;
+            status: components["schemas"]["TaskStatus"];
+            /** Format: date-time */
+            due_at: string | null;
+            /** Format: date-time */
+            completed_at: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        CreateTaskRequest: {
+            title: string;
+            description?: string;
+            /** Format: uuid */
+            interview_id?: string;
+            /** Format: uuid */
+            assignee_id?: string;
+            /** Format: date-time */
+            due_at?: string;
+        };
+        UpdateTaskRequest: {
+            title?: string;
+            description?: string;
+            status?: components["schemas"]["TaskStatus"];
+            /** Format: uuid */
+            assignee_id?: string | null;
+            /** Format: date-time */
+            due_at?: string;
+        };
+        CreateInviteRequest: {
+            /** Format: email */
+            email: string;
+            role?: components["schemas"]["Role"];
+            /**
+             * Format: uuid
+             * @description Set for a candidate invite, which takes no role.
+             */
+            interview_id?: string;
+            /** Format: int64 */
+            expires_in_seconds?: number;
+        };
+        Invite: {
+            /** Format: uuid */
+            id: string;
+            /** Format: email */
+            email: string;
+            /** @description A member role */
+            role: string;
+            /** Format: uuid */
+            interview_id: string | null;
+            /** Format: date-time */
+            expires_at: string;
+            /** @description Returned once; only its hash is stored. */
+            token: string;
+        };
+        /** @enum {string} */
+        PolicyKey: "ai_assistance" | "ai_scoring" | "code_execution" | "live_monitoring" | "replay";
+        Policy: {
+            key: components["schemas"]["PolicyKey"];
+            enabled: boolean;
+            /** Format: uuid */
+            updated_by: string | null;
+            /** Format: date-time */
+            updated_at: string | null;
+        };
+        SetPolicyRequest: {
+            enabled: boolean;
+        };
+        DailyCount: {
+            /** Format: date */
+            day: string;
+            event_type: string;
+            /** Format: int64 */
+            events: number;
+        };
+        DashboardOverview: {
+            /** Format: date */
+            since: string;
+            days: number;
+            daily: components["schemas"]["DailyCount"][];
+            totals: {
+                [key: string]: number;
+            };
+        };
+        InterviewActivity: {
+            /** Format: uuid */
+            interview_id: string;
+            /** Format: int64 */
+            events: number;
+            /** Format: int64 */
+            prompts: number;
+            /** Format: int64 */
+            ai_responses: number;
+            /** Format: int64 */
+            runs: number;
+            /** Format: int64 */
+            runs_succeeded: number;
+            /** Format: int64 */
+            diffs: number;
+            /** Format: int64 */
+            ai_applied_diffs: number;
+            /** Format: int64 */
+            lines_added: number;
+            /** Format: int64 */
+            lines_removed: number;
+            /** Format: date-time */
+            first_at: string;
+            /** Format: date-time */
+            last_at: string;
+        };
+        IssuedSearchKey: {
+            key: string;
+            /** @description The embedded filter, company_id:=<company id>. */
+            filter_by: string;
+            /** Format: date-time */
+            expires_at: string;
+            host: string;
+            collections: string[];
+        };
         Candidate: {
             id: string;
             /** Format: email */
@@ -343,6 +885,8 @@ export interface components {
     };
     parameters: {
         InterviewId: string;
+        ResourceId: string;
+        Limit: number;
         JobId: string;
         CandidateId: string;
     };
@@ -560,6 +1104,639 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Company"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCompanyRequest"];
+            };
+        };
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Company"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        users: components["schemas"]["User"][];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Success. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ResourceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ResourceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ResourceId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listInterviews: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["InterviewStatus"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        interviews: components["schemas"]["Interview"][];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createInterview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInterviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Success. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Interview"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getInterview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["InterviewId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Interview"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateInterview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["InterviewId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInterviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Interview"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    requestInterviewErasure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["InterviewId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EraseAccepted"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listInterviewScores: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["InterviewId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        scores: components["schemas"]["Score"][];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    decideInterviewScore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["InterviewId"];
+                scoreId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScoreDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Score"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    watchInterviewLive: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Last-Event-ID"?: number;
+            };
+            path: {
+                id: components["parameters"]["InterviewId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description text/event-stream of `event` events (data is a TimelineEvent, id its sequence_number), one `caught_up` event after the replay of missed events, and `: ping` heartbeats. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listTasks: {
+        parameters: {
+            query?: {
+                interview_id?: string;
+                assignee_id?: string;
+                status?: components["schemas"]["TaskStatus"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        tasks: components["schemas"]["Task"][];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description Success. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ResourceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ResourceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ResourceId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInviteRequest"];
+            };
+        };
+        responses: {
+            /** @description Success. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invite"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listPolicies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        policies: components["schemas"]["Policy"][];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: components["schemas"]["PolicyKey"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Policy"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getDashboardOverview: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardOverview"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getDashboardInterviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        interviews: components["schemas"]["InterviewActivity"][];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    issueSearchKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssuedSearchKey"];
                 };
             };
             default: components["responses"]["Error"];

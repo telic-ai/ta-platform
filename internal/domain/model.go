@@ -120,3 +120,45 @@ func (s SessionState) CanTransitionTo(next SessionState) bool {
 	return s == SessionStateActive &&
 		(next == SessionStateCompleted || next == SessionStateExpired || next == SessionStateRevoked)
 }
+
+// Interview statuses. Completed and cancelled are terminal.
+const (
+	InterviewStatusScheduled  = "scheduled"
+	InterviewStatusInProgress = "in_progress"
+	InterviewStatusCompleted  = "completed"
+	InterviewStatusCancelled  = "cancelled"
+)
+
+// Score statuses. AI scoring proposes; only a human decision (human_*)
+// approves, rejects or adjusts a proposal.
+const (
+	ScoreStatusProposed      = "proposed"
+	ScoreStatusHumanApproved = "human_approved"
+	ScoreStatusHumanRejected = "human_rejected"
+	ScoreStatusHumanAdjusted = "human_adjusted"
+)
+
+// Score is one scored dimension of an interview and the human decision on it.
+type Score struct {
+	ID            uuid.UUID
+	CompanyID     uuid.UUID
+	InterviewID   uuid.UUID
+	Dimension     string
+	ProposedValue float64
+	Rationale     string
+	Status        string
+	FinalValue    *float64
+	DecisionNote  string
+	DecidedBy     *uuid.UUID
+	DecidedAt     *time.Time
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+// Policy is a company's feature toggle.
+type Policy struct {
+	Key       string
+	Enabled   bool
+	UpdatedBy *uuid.UUID
+	UpdatedAt *time.Time
+}
