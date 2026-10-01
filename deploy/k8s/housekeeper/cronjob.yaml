@@ -1,0 +1,54 @@
+# Housekeeper: nightly purge of interviews past retention or with an erasure
+# request (legal holds excepted). It touches Typesense, ClickHouse and
+# Postgres only; S3 snapshots expire by bucket lifecycle rule and Kafka
+# records by topic retention, so neither credential is mounted here.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: housekeeper
+  labels:
+    app.kubernetes.io/name: housekeeper
+    app.kubernetes.io/part-of: ta-platform
+spec:
+  schedule: "17 3 * * *"
+  timeZone: Etc/UTC
+  # Purges lock each interview row, so overlapping runs would be safe, but
+  # there is no reason to allow them.
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 7200
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: housekeeper
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: housekeeper
+              image: ta-platform/housekeeper:latest
+              args: []
+              env:
+                - name: RETENTION
+                  value: "8760h"
+                - name: HOUSEKEEPER_BATCH_SIZE
+                  value: "500"
+              envFrom:
+                - secretRef:
+                    name: housekeeper-stores # POSTGRES_DSN, CLICKHOUSE_DSN, TYPESENSE_URL, TYPESENSE_API_KEY
+              resources:
+                requests: {cpu: 100m, memory: 128Mi}
+                limits: {memory: 256Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]

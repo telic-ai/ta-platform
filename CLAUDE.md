@@ -78,6 +78,14 @@ design.
   `v_task_daily`, `v_funnel`, `v_billing_usage`; never sum a view target
   without `FINAL`. `v_session_metrics` must stay equal to
   `internal/scoring/metrics` — the fixture test enforces it.
+- `internal/housekeeper` — Housekeeper CronJob (`cmd/housekeeper`,
+  `deploy/k8s/housekeeper`): purges interviews past `RETENTION` or with
+  `erase_requested_at`, never under `legal_hold`. Holding the interview row
+  lock, it deletes Typesense documents, then ClickHouse `events` and
+  `session_metric_rows`, then skeletonizes Postgres (PII blanked; invites,
+  sessions, scores deleted) and writes `purge_log`. It never touches S3
+  (bucket lifecycle) or Kafka (topic retention). There is no `ai_calls`
+  table, despite the vault note.
 - `internal/e2e` — cross-service integration tests (`integration` tag).
 - `api/openapi.yaml` — the single source of truth for candidate + admin
   HTTP APIs; `make generate` produces Go server stubs
