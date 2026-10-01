@@ -1,0 +1,46 @@
+# Monthly close: writes draft invoices for the previous UTC month from
+# ClickHouse usage (v_billing_usage). Late events keep arriving for a while,
+# so it also re-runs daily during the first week; each run recomputes the
+# drafts and never changes an issued invoice.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: billing-close
+  labels:
+    app.kubernetes.io/name: billing-close
+    app.kubernetes.io/part-of: ta-platform
+spec:
+  schedule: "41 2 1-7 * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 21600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: billing-close
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: billing-close
+              image: ta-platform/billing-close:latest
+              envFrom:
+                - secretRef:
+                    name: billing-close-stores # POSTGRES_DSN, CLICKHOUSE_DSN
+              resources:
+                requests: {cpu: 100m, memory: 128Mi}
+                limits: {memory: 256Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]

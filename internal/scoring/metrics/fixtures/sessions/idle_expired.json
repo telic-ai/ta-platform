@@ -1,0 +1,18 @@
+{
+  "name": "session that expired with no activity",
+  "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000002",
+  "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000003",
+  "session_id": "0b6f3a1e-3333-4c1a-9a51-000000000003",
+  "events": [
+    {"event_id": "f3-01", "event_type": "session.started", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000002", "sequence_number": 1, "occurred_at": "2026-09-03T12:00:00Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000003", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000003", "invite_id": "inv-3", "scope": "candidate:workspace", "expires_at": "2026-09-03T12:30:00Z"}},
+    {"event_id": "f3-02", "event_type": "session.expired", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000002", "sequence_number": 2, "occurred_at": "2026-09-03T12:30:00Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000003", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000003"}}
+  ],
+  "want": {
+    "prompt_count": 0, "ai_response_count": 0, "ai_error_count": 0, "ai_input_tokens": 0, "ai_output_tokens": 0,
+    "run_count": 0, "run_succeeded_count": 0, "last_run_status": "",
+    "diff_count": 0, "ai_diff_count": 0, "lines_added": 0, "lines_removed": 0, "ai_lines_added": 0,
+    "active_duration_ms": 1800000, "time_to_first_run_ms": null
+  }
+}

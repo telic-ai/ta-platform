@@ -1,0 +1,40 @@
+{
+  "name": "submitted session with AI help, two runs and a redelivered response",
+  "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000001",
+  "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000001",
+  "session_id": "0b6f3a1e-3333-4c1a-9a51-000000000001",
+  "events": [
+    {"event_id": "f1-01", "event_type": "session.started", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000001", "sequence_number": 1, "occurred_at": "2026-09-01T10:00:00Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000001", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000001", "invite_id": "inv-1", "scope": "candidate:workspace", "expires_at": "2026-09-02T10:00:00Z"}},
+    {"event_id": "f1-02", "event_type": "prompt.submitted", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000001", "sequence_number": 2, "occurred_at": "2026-09-01T10:01:00Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000001", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000001", "prompt_id": "p1", "prompt": "write a binary search", "history_turns": 0, "completion_sequence_number": 3}},
+    {"event_id": "f1-03", "event_type": "ai.response.completed", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000001", "sequence_number": 3, "occurred_at": "2026-09-01T10:01:05Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000001", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000001", "prompt_id": "p1", "mode": "managed", "provider": "anthropic", "model": "m", "status": "completed", "response_text": "def search(xs, x): ...", "input_tokens": 120, "output_tokens": 300, "latency_ms": 5000}},
+    {"event_id": "f1-04", "event_type": "code.diff", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000001", "sequence_number": 4, "occurred_at": "2026-09-01T10:01:30Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000001", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000001", "client_sequence": 1, "origin": "ai_applied", "prompt_id": "p1", "path": "search.py", "patch": "+...", "lines_added": 20, "lines_removed": 2}},
+    {"event_id": "f1-03", "event_type": "ai.response.completed", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000001", "sequence_number": 3, "occurred_at": "2026-09-01T10:01:05Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000001", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000001", "prompt_id": "p1", "mode": "managed", "provider": "anthropic", "model": "m", "status": "completed", "response_text": "def search(xs, x): ...", "input_tokens": 120, "output_tokens": 300, "latency_ms": 5000}},
+    {"event_id": "f1-05", "event_type": "code.diff", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000001", "sequence_number": 5, "occurred_at": "2026-09-01T10:02:00Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000001", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000001", "client_sequence": 2, "origin": "manual", "path": "search.py", "patch": "+...", "lines_added": 5, "lines_removed": 1}},
+    {"event_id": "f1-06", "event_type": "execution.requested", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000001", "sequence_number": 6, "occurred_at": "2026-09-01T10:02:30Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000001", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000001", "execution_id": "x1", "language": "python", "entrypoint": "search.py", "snapshot_key": "k1", "file_count": 1, "snapshot_bytes": 400}},
+    {"event_id": "f1-07", "event_type": "execution.completed", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000001", "sequence_number": 7, "occurred_at": "2026-09-01T10:02:32Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000001", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000001", "execution_id": "x1", "status": "failed", "exit_code": 1, "duration_ms": 1800, "stdout": "", "stderr": "IndexError", "stdout_truncated": false, "stderr_truncated": false}},
+    {"event_id": "f1-08", "event_type": "code.diff", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000001", "sequence_number": 8, "occurred_at": "2026-09-01T10:03:20Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000001", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000001", "client_sequence": 3, "origin": "manual", "path": "search.py", "patch": "+...", "lines_added": 3, "lines_removed": 3}},
+    {"event_id": "f1-09", "event_type": "execution.requested", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000001", "sequence_number": 9, "occurred_at": "2026-09-01T10:03:30Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000001", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000001", "execution_id": "x2", "language": "python", "entrypoint": "search.py", "snapshot_key": "k2", "file_count": 1, "snapshot_bytes": 410}},
+    {"event_id": "f1-10", "event_type": "execution.completed", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000001", "sequence_number": 10, "occurred_at": "2026-09-01T10:03:31.500Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000001", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000001", "execution_id": "x2", "status": "succeeded", "exit_code": 0, "duration_ms": 1200, "stdout": "ok", "stderr": "", "stdout_truncated": false, "stderr_truncated": false}},
+    {"event_id": "f1-11", "event_type": "session.submitted", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000001", "sequence_number": 11, "occurred_at": "2026-09-01T10:05:00Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000001", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000001"}},
+    {"event_id": "f1-12", "event_type": "score.computed", "schema_version": 1, "company_id": "0b6f3a1e-1111-4c1a-9a51-000000000001", "sequence_number": 12, "occurred_at": "2026-09-01T10:09:00Z",
+     "payload": {"session_id": "0b6f3a1e-3333-4c1a-9a51-000000000001", "interview_id": "0b6f3a1e-2222-4c1a-9a51-000000000001", "trigger": "session.submitted", "metrics_complete": true, "metrics": {}}}
+  ],
+  "want": {
+    "prompt_count": 1, "ai_response_count": 1, "ai_error_count": 0, "ai_input_tokens": 120, "ai_output_tokens": 300,
+    "run_count": 2, "run_succeeded_count": 1, "last_run_status": "succeeded",
+    "diff_count": 3, "ai_diff_count": 1, "lines_added": 28, "lines_removed": 6, "ai_lines_added": 20,
+    "active_duration_ms": 300000, "time_to_first_run_ms": 150000
+  }
+}

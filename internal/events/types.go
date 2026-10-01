@@ -1,6 +1,9 @@
 package events
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // SessionEventsTopic is the Event Catalog topic for session lifecycle events.
 // Records are keyed by session_id so one session's events stay ordered on one
@@ -23,6 +26,9 @@ const (
 	EventTypeExecutionRequested    EventType = "execution.requested"
 	EventTypeExecutionCompleted    EventType = "execution.completed"
 	EventTypeCodeDiff              EventType = "code.diff"
+	EventTypeSessionSubmitted      EventType = "session.submitted"
+	EventTypeSessionExpired        EventType = "session.expired"
+	EventTypeScoreComputed         EventType = "score.computed"
 )
 
 // SessionStarted is emitted after an invite has been exchanged for an
@@ -121,6 +127,44 @@ type CodeDiff struct {
 
 func (CodeDiff) EventType() EventType { return EventTypeCodeDiff }
 func (CodeDiff) SchemaVersion() int   { return 1 }
+
+// SessionSubmitted is emitted when the candidate submits their work and the
+// session moves to completed. Its sequence number is the last one the
+// session allocated, so every earlier event of the interview precedes it.
+type SessionSubmitted struct {
+	SessionID   string `json:"session_id"`
+	InterviewID string `json:"interview_id"`
+}
+
+func (SessionSubmitted) EventType() EventType { return EventTypeSessionSubmitted }
+func (SessionSubmitted) SchemaVersion() int   { return 1 }
+
+// SessionExpired is emitted when an active session reaches its deadline
+// without being submitted.
+type SessionExpired struct {
+	SessionID   string `json:"session_id"`
+	InterviewID string `json:"interview_id"`
+}
+
+func (SessionExpired) EventType() EventType { return EventTypeSessionExpired }
+func (SessionExpired) SchemaVersion() int   { return 1 }
+
+// ScoreComputed is emitted by the Scoring Service once a session's score is
+// stored. Recommendation is empty when the AI recommendation failed; the
+// metrics are stored regardless. MetricsComplete is false when the event log
+// had not caught up with the trigger after every retry.
+type ScoreComputed struct {
+	SessionID         string          `json:"session_id"`
+	InterviewID       string          `json:"interview_id"`
+	Trigger           EventType       `json:"trigger"`
+	MetricsComplete   bool            `json:"metrics_complete"`
+	Metrics           json.RawMessage `json:"metrics"`
+	Recommendation    string          `json:"recommendation,omitempty"`
+	RecommendationErr string          `json:"recommendation_error,omitempty"`
+}
+
+func (ScoreComputed) EventType() EventType { return EventTypeScoreComputed }
+func (ScoreComputed) SchemaVersion() int   { return 1 }
 
 // AI response statuses. ai.response.completed is emitted for every
 // completion attempt, whatever its outcome.

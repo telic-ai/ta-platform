@@ -11,6 +11,7 @@ import (
 	"time"
 
 	kafkago "github.com/segmentio/kafka-go"
+	"github.com/telic-ai/ta-platform/internal/analytics"
 	"github.com/telic-ai/ta-platform/internal/eventlogwriter"
 	"github.com/telic-ai/ta-platform/internal/platform/config"
 	"github.com/telic-ai/ta-platform/internal/platform/logging"
@@ -52,6 +53,16 @@ func main() {
 	if err := store.EnsureSchema(ctx); err != nil {
 		logger.Error("migrate event store", slog.Any("error", err))
 		os.Exit(1)
+	}
+	// The analytics views must exist before events are inserted to see
+	// them; a newly created view is backfilled from the log.
+	created, err := analytics.Migrate(ctx, clickhouseClient.Conn())
+	if err != nil {
+		logger.Error("migrate analytics views", slog.Any("error", err))
+		os.Exit(1)
+	}
+	if len(created) > 0 {
+		logger.Info("created analytics views", slog.Any("views", created))
 	}
 
 	topics := splitNonEmpty(getenv("EVENT_LOG_TOPICS", eventlogwriter.DefaultTopic))
