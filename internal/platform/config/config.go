@@ -20,6 +20,8 @@ type Config struct {
 	S3Bucket      string
 	S3AccessKey   string
 	S3SecretKey   string
+	TypesenseURL  string
+	TypesenseKey  string
 	HTTPAddr      string
 	SessionTTL    time.Duration
 	// AIGatewayURL is where the Candidate Workspace reaches the AI Gateway.
@@ -58,6 +60,8 @@ func Load(serviceName string) (Config, error) {
 		S3Bucket:       getenv("S3_BUCKET", "ta-platform"),
 		S3AccessKey:    getenv("S3_ACCESS_KEY", "minioadmin"),
 		S3SecretKey:    getenv("S3_SECRET_KEY", "minioadmin"),
+		TypesenseURL:   getenv("TYPESENSE_URL", "http://localhost:8108"),
+		TypesenseKey:   getenv("TYPESENSE_API_KEY", "local-dev-key"),
 		HTTPAddr:       getenv("HTTP_ADDR", ":8081"),
 		SessionTTL:     sessionTTL,
 		AIGatewayURL:   getenv("AI_GATEWAY_URL", "http://localhost:8090"),

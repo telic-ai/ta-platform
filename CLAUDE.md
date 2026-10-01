@@ -58,6 +58,11 @@ design.
   the language images pulled, and `scripts/install-gvisor.sh` for the gVisor
   cases (skipped if `runsc` is not registered). Reference pod manifests are
   in `deploy/k8s/execution-sandbox/`.
+- `internal/eventindexer` — Event Indexer (`cmd/event-indexer`): consumes
+  session events and upserts prompts, AI responses and code diffs into the
+  Typesense `session_events` collection, keyed by `event_id` so redelivery
+  is a no-op. Searches must filter by `company_id`. Typesense is reached
+  through `internal/store/typesense` (`TYPESENSE_URL`, `TYPESENSE_API_KEY`).
 - `internal/e2e` — cross-service integration tests (`integration` tag).
 - `api/openapi.yaml` — the single source of truth for candidate + admin
   HTTP APIs; `make generate` produces Go server stubs
