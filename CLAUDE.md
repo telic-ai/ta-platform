@@ -86,6 +86,13 @@ design.
   sessions, scores deleted) and writes `purge_log`. It never touches S3
   (bucket lifecycle) or Kafka (topic retention). There is no `ai_calls`
   table, despite the vault note.
+- `internal/billing` — monthly close (`cmd/billing-close`,
+  `deploy/k8s/billing-close`): reads `v_billing_usage`, prices it with
+  `plans.price_table` (pure `Price`; BYOK tokens are not billed), applies
+  `billing_credits` (pure `ApplyCredits`, never below zero, balance net of
+  other non-void invoices) and writes one draft per `(company_id, period)`
+  into `invoices`/`invoice_lines`. Re-runs recompute drafts; issued invoices
+  are never touched.
 - `internal/e2e` — cross-service integration tests (`integration` tag).
 - `api/openapi.yaml` — the single source of truth for candidate + admin
   HTTP APIs; `make generate` produces Go server stubs

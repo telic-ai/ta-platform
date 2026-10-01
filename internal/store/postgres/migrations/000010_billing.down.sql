@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS invoice_lines;
+DROP TABLE IF EXISTS invoices;
+DROP TABLE IF EXISTS billing_credits;
+ALTER TABLE companies DROP COLUMN IF EXISTS plan_id;
+DROP TABLE IF EXISTS plans;
